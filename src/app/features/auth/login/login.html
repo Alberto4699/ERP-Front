@@ -27,15 +27,15 @@
                         <form [formGroup]="loginForm" (ngSubmit)="submit()">
 
                             <div class="mb-3">
-                                <label for="emailaddress" class="form-label">Email address</label>
-                                <input class="form-control" type="email" id="emailaddress" required="" placeholder="Enter your email" formControlName="email">
+                                <label for="username" class="form-label">Usuario</label>
+                                <input class="form-control" type="text" id="username" required="" placeholder="Ingresa tu usuario" formControlName="username">
                             </div>
 
                             <div class="mb-3">
                                 <a href="pages-recoverpw.html" class="text-muted float-end"><small>Forgot your password?</small></a>
-                                <label for="password" class="form-label">Password</label>
+                                <label for="password" class="form-label">Contraseña</label>
                                 <div class="input-group input-group-merge">
-                                    <input type="password" id="password" class="form-control" placeholder="Enter your password" formControlName="password">
+                                    <input type="password" id="password" class="form-control" placeholder="Ingresa tu contraseña" formControlName="password">
                                     <div class="input-group-text" data-password="false">
                                         <span class="password-eye"></span>
                                     </div>

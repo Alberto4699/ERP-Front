@@ -29,7 +29,7 @@ export class Login {
     this.cargando = false;
     this.mensajeError = '';
     this.loginForm = this.fb.nonNullable.group({
-      email: ['', [Validators.required, Validators.email]],
+      username: ['', [Validators.required]],
       password: ['', [Validators.required]],
       remember: [true]
     });
@@ -46,7 +46,7 @@ export class Login {
     this.cargando = true;
 
     const datos: LoginRequest = {
-      email: this.loginForm.value.email,
+      username: this.loginForm.value.username,
       password: this.loginForm.value.password
     };
 

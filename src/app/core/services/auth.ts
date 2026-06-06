@@ -10,7 +10,7 @@ import { LoginResponse } from '../models/login-response.model';
 })
 export class Auth {
 
-  private readonly apiUrl = 'https://api.midominio.com/api/auth/login';
+  private readonly apiUrl = 'https://localhost:7282/api/Auth/login';
 
   constructor(private http: HttpClient) { }
 
