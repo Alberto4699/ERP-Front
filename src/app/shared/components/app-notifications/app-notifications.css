@@ -1,0 +1,20 @@
+.app-notifications {
+  z-index: 1080;
+  max-width: min(24rem, calc(100vw - 1rem));
+}
+
+.app-notification {
+  border: 0;
+  box-shadow: var(--ct-box-shadow);
+  opacity: 1;
+}
+
+.app-notification .toast-header {
+  color: inherit;
+  background-color: transparent;
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+
+.app-notification .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}

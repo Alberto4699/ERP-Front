@@ -1,10 +1,14 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, ElementRef, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, OnDestroy, OnInit, signal, viewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize } from 'rxjs';
 
 import { Category, CategoryFilters, CategorySaveRequest } from '../../core/models/category.model';
 import { CategoriesService } from '../../core/services/categories';
+import { NotificationsService } from '../../core/services/notifications';
+
+type CategoryModalMode = 'create' | 'view' | 'edit' | 'delete';
 
 @Component({
   selector: 'app-categories',
@@ -17,8 +21,10 @@ import { CategoriesService } from '../../core/services/categories';
 })
 export class Categories implements OnInit, OnDestroy {
   private readonly document = inject(DOCUMENT);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   private readonly categoriesService = inject(CategoriesService);
+  private readonly notifications = inject(NotificationsService);
   private readonly categoryNameInput = viewChild<ElementRef<HTMLInputElement>>('categoryNameInput');
   private readonly newCategoryButton = viewChild<ElementRef<HTMLButtonElement>>('newCategoryButton');
 
@@ -26,9 +32,10 @@ export class Categories implements OnInit, OnDestroy {
   readonly cargando = signal(false);
   readonly guardando = signal(false);
   readonly mostrandoFormulario = signal(false);
+  readonly modalMode = signal<CategoryModalMode>('create');
+  readonly selectedCategory = signal<Category | null>(null);
   readonly mensajeError = signal('');
   readonly mensajeFormulario = signal('');
-  readonly mensajeExito = signal('');
 
   readonly filterForm = this.fb.nonNullable.group({
     search: [''],
@@ -41,6 +48,7 @@ export class Categories implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
+    this.listenSearchChanges();
     this.loadCategories();
   }
 
@@ -58,16 +66,20 @@ export class Categories implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           if (!response.success) {
+            const message = response.message || 'No se pudieron cargar las categorías.';
             this.categories.set([]);
-            this.mensajeError.set(response.message || 'No se pudieron cargar las categorías.');
+            this.mensajeError.set(message);
+            this.notifications.error(message);
             return;
           }
 
           this.categories.set(response.data ?? []);
         },
         error: () => {
+          const message = 'No se pudieron cargar las categorías.';
           this.categories.set([]);
-          this.mensajeError.set('No se pudieron cargar las categorías.');
+          this.mensajeError.set(message);
+          this.notifications.error(message);
         },
       });
   }
@@ -80,7 +92,7 @@ export class Categories implements OnInit, OnDestroy {
     this.filterForm.reset({
       search: '',
       active: '',
-    });
+    }, { emitEvent: false });
     this.loadCategories();
   }
 
@@ -89,9 +101,10 @@ export class Categories implements OnInit, OnDestroy {
       name: '',
       description: '',
     });
+    this.modalMode.set('create');
+    this.selectedCategory.set(null);
     this.mostrandoFormulario.set(true);
     this.mensajeFormulario.set('');
-    this.mensajeExito.set('');
     this.setModalState(true);
     setTimeout(() => this.categoryNameInput()?.nativeElement.focus());
   }
@@ -103,6 +116,8 @@ export class Categories implements OnInit, OnDestroy {
       name: '',
       description: '',
     });
+    this.selectedCategory.set(null);
+    this.modalMode.set('create');
     this.setModalState(false);
     setTimeout(() => this.newCategoryButton()?.nativeElement.focus());
   }
@@ -125,7 +140,6 @@ export class Categories implements OnInit, OnDestroy {
 
   guardarCategoria(): void {
     this.mensajeFormulario.set('');
-    this.mensajeExito.set('');
 
     if (this.categoryForm.invalid) {
       this.categoryForm.markAllAsTouched();
@@ -135,6 +149,11 @@ export class Categories implements OnInit, OnDestroy {
 
     const request = this.buildSaveRequest();
 
+    if (this.modalMode() === 'edit') {
+      this.actualizarCategoria(request);
+      return;
+    }
+
     this.guardando.set(true);
     this.categoriesService
       .create(request)
@@ -142,16 +161,20 @@ export class Categories implements OnInit, OnDestroy {
       .subscribe({
         next: (response) => {
           if (!response.success) {
-            this.mensajeFormulario.set(this.getResponseMessage(response.message, response.errors));
+            const message = this.getResponseMessage(response.message, response.errors);
+            this.mensajeFormulario.set(message);
+            this.notifications.error(message, { title: 'No se pudo guardar' });
             return;
           }
 
           this.cancelarNuevaCategoria();
-          this.mensajeExito.set(response.message || 'Categoría creada correctamente.');
+          this.notifications.success(response.message || 'Categoría creada correctamente.');
           this.loadCategories();
         },
         error: () => {
-          this.mensajeFormulario.set('No se pudo crear la categoría.');
+          const message = 'No se pudo crear la categoría.';
+          this.mensajeFormulario.set(message);
+          this.notifications.error(message, { title: 'No se pudo guardar' });
         },
       });
   }
@@ -161,12 +184,84 @@ export class Categories implements OnInit, OnDestroy {
     return control.invalid && (control.dirty || control.touched);
   }
 
-  trackCategory(index: number, category: Category): number | string {
-    return category.id ?? category.categoryId ?? category.name ?? index;
+  verCategoria(category: Category): void {
+    this.modalMode.set('view');
+    this.selectedCategory.set(category);
+    this.mostrandoFormulario.set(true);
+    this.mensajeFormulario.set('');
+    this.setModalState(true);
   }
 
-  displayId(category: Category): number | string {
-    return category.id ?? category.categoryId ?? '-';
+  editarCategoria(category: Category): void {
+    this.modalMode.set('edit');
+    this.selectedCategory.set(category);
+    this.mensajeFormulario.set('');
+    this.categoryForm.reset({
+      name: category.name,
+      description: category.description ?? '',
+    });
+    this.mostrandoFormulario.set(true);
+    this.setModalState(true);
+    setTimeout(() => this.categoryNameInput()?.nativeElement.focus());
+  }
+
+  eliminarCategoria(category: Category): void {
+    this.modalMode.set('delete');
+    this.selectedCategory.set(category);
+    this.mensajeFormulario.set('');
+    this.mostrandoFormulario.set(true);
+    this.setModalState(true);
+  }
+
+  mostrarMasAcciones(category: Category): void {
+    void category;
+  }
+
+  confirmarEliminacion(): void {
+    const category = this.selectedCategory();
+    const id = this.getCategoryId(category);
+
+    if (id === null) {
+      this.notifications.error('No se pudo identificar la categoría.', { title: 'No se pudo eliminar' });
+      return;
+    }
+
+    this.guardando.set(true);
+    this.categoriesService
+      .remove(id)
+      .pipe(finalize(() => this.guardando.set(false)))
+      .subscribe({
+        next: (response) => {
+          if (!response.success) {
+            this.notifications.error(this.getResponseMessage(response.message, response.errors), { title: 'No se pudo eliminar' });
+            return;
+          }
+
+          this.cancelarNuevaCategoria();
+          this.notifications.success(response.message || 'Categoría eliminada correctamente.');
+          this.loadCategories();
+        },
+        error: () => {
+          this.notifications.error('No se pudo eliminar la categoría.', { title: 'No se pudo eliminar' });
+        },
+      });
+  }
+
+  modalTitle(): string {
+    switch (this.modalMode()) {
+      case 'view':
+        return 'Detalle de categoría';
+      case 'edit':
+        return 'Editar categoría';
+      case 'delete':
+        return 'Eliminar categoría';
+      case 'create':
+        return 'Nueva categoría';
+    }
+  }
+
+  trackCategory(index: number, category: Category): number | string {
+    return category.id ?? category.categoryId ?? category.name ?? index;
   }
 
   isActive(category: Category): boolean {
@@ -183,6 +278,12 @@ export class Categories implements OnInit, OnDestroy {
     };
   }
 
+  private listenSearchChanges(): void {
+    this.filterForm.controls.search.valueChanges
+      .pipe(debounceTime(350), distinctUntilChanged(), takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.loadCategories());
+  }
+
   private buildSaveRequest(): CategorySaveRequest {
     const formValue = this.categoryForm.getRawValue();
     const description = formValue.description.trim();
@@ -191,6 +292,43 @@ export class Categories implements OnInit, OnDestroy {
       name: formValue.name.trim(),
       description: description || null,
     };
+  }
+
+  private actualizarCategoria(request: CategorySaveRequest): void {
+    const id = this.getCategoryId(this.selectedCategory());
+
+    if (id === null) {
+      this.notifications.error('No se pudo identificar la categoría.', { title: 'No se pudo guardar' });
+      return;
+    }
+
+    this.guardando.set(true);
+    this.categoriesService
+      .update(id, request)
+      .pipe(finalize(() => this.guardando.set(false)))
+      .subscribe({
+        next: (response) => {
+          if (!response.success) {
+            const message = this.getResponseMessage(response.message, response.errors);
+            this.mensajeFormulario.set(message);
+            this.notifications.error(message, { title: 'No se pudo guardar' });
+            return;
+          }
+
+          this.cancelarNuevaCategoria();
+          this.notifications.success(response.message || 'Categoría actualizada correctamente.');
+          this.loadCategories();
+        },
+        error: () => {
+          const message = 'No se pudo actualizar la categoría.';
+          this.mensajeFormulario.set(message);
+          this.notifications.error(message, { title: 'No se pudo guardar' });
+        },
+      });
+  }
+
+  private getCategoryId(category: Category | null): number | null {
+    return category?.id ?? category?.categoryId ?? null;
   }
 
   private getResponseMessage(message: string, errors: string[] | null): string {
