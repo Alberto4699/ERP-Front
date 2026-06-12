@@ -3,6 +3,8 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
+import { AuthenticatedUser } from '../models/authenticated-user.model';
+import { AuthenticatedUserPermission } from '../models/authenticated-user-permission.model';
 import { LoginRequest } from '../models/login-request.model';
 import { LoginResponse } from '../models/login-response.model';
 
@@ -10,12 +12,20 @@ import { LoginResponse } from '../models/login-response.model';
   providedIn: 'root',
 })
 export class Auth {
-  private readonly apiUrl = `${environment.apiUrl}/Auth/login`;
+  private readonly apiUrl = `${environment.apiUrl}/Auth`;
 
   constructor(private http: HttpClient) {}
 
   login(datos: LoginRequest): Observable<ApiResponse<LoginResponse>> {
-    return this.http.post<ApiResponse<LoginResponse>>(this.apiUrl, datos);
+    return this.http.post<ApiResponse<LoginResponse>>(`${this.apiUrl}/login`, datos);
+  }
+
+  me(): Observable<ApiResponse<AuthenticatedUser>> {
+    return this.http.get<ApiResponse<AuthenticatedUser>>(`${this.apiUrl}/me`);
+  }
+
+  permissions(): Observable<ApiResponse<AuthenticatedUserPermission[]>> {
+    return this.http.get<ApiResponse<AuthenticatedUserPermission[]>>(`${this.apiUrl}/permissions`);
   }
 
   guardarToken(token: string, recordar: boolean): void {

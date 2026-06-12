@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 
 import { Auth } from '../../../core/services/auth';
 import { LoginRequest } from '../../../core/models/login-request.model';
+import { Session } from '../../../core/services/session';
 
 @Component({
   selector: 'app-login',
@@ -24,6 +25,7 @@ export class Login {
   constructor(
     private fb: FormBuilder,
     private authService: Auth,
+    private session: Session,
     private router: Router
   ) {
     this.cargando = false;
@@ -61,7 +63,15 @@ export class Login {
         }
 
         this.authService.guardarToken(respuesta.data.token, recordar);
-        this.router.navigate(['/dashboard']);
+        this.session.load().subscribe((sessionLoaded) => {
+          if (!sessionLoaded) {
+            this.mensajeError = 'No se pudo cargar la información de sesión.';
+            this.cargando = false;
+            return;
+          }
+
+          this.router.navigate(['/dashboard']);
+        });
       },
       error: (error) => {
         console.error(error);
