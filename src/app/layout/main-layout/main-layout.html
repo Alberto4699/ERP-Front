@@ -28,7 +28,7 @@
                     </div>
 
                     <!-- Sidebar Menu Toggle Button -->
-                    <button class="button-toggle-menu">
+                    <button type="button" class="button-toggle-menu" aria-label="Abrir o cerrar menú lateral" aria-controls="leftside-menu-container" [attr.aria-expanded]="menuExpanded()" (click)="toggleMenu($event)">
                         <i class="ri-menu-5-line"></i>
                     </button>
 
@@ -508,7 +508,7 @@
                         <div class="collapse" id="sidebarCatalogs">
                             <ul class="side-nav-second-level">
                                 <li>
-                                    <a href="javascript: void(0);">Categorías</a>
+                                    <a routerLink="/categories" routerLinkActive="active">Categorías</a>
                                 </li>
                                 <li>
                                     <a href="javascript: void(0);">Marcas</a>
@@ -556,5 +556,9 @@
         <!-- Start Page Content Here -->
         <!-- ============================================================== -->
 
-        <router-outlet></router-outlet>
+        <div class="content-page">
+            <div class="content">
+                <router-outlet></router-outlet>
+            </div>
+        </div>
 </div>

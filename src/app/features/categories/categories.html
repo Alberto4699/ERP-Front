@@ -1,0 +1,149 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Categorías</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de categorías</h5>
+              <p class="text-muted mb-0">Administra las categorías usadas en el catálogo.</p>
+            </div>
+
+            <div>
+              <button #newCategoryButton class="btn btn-success" type="button" (click)="nuevaCategoria()" [disabled]="mostrandoFormulario() || guardando()">
+                Nueva categoría
+              </button>
+            </div>
+          </div>
+
+          @if (mensajeExito()) {
+            <div class="alert alert-success" role="status">
+              {{ mensajeExito() }}
+            </div>
+          }
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-md-5">
+              <label class="form-label" for="category-search">Buscar</label>
+              <input id="category-search" class="form-control" type="search" placeholder="Nombre o descripción" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="category-active">Estado</label>
+              <select id="category-active" class="form-select" formControlName="active">
+                <option value="">Todos</option>
+                <option value="true">Activas</option>
+                <option value="false">Inactivas</option>
+              </select>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">Cargando categorías...</td>
+                  </tr>
+                } @else {
+                  @for (category of categories(); track trackCategory($index, category)) {
+                    <tr>
+                      <td>{{ displayId(category) }}</td>
+                      <td>{{ category.name }}</td>
+                      <td>{{ category.description || '-' }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isActive(category)" [class.bg-secondary]="!isActive(category)">
+                          {{ isActive(category) ? 'Activa' : 'Inactiva' }}
+                        </span>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-4">No hay categorías para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="category-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <form [formGroup]="categoryForm" (ngSubmit)="guardarCategoria()" novalidate>
+          <div class="modal-header">
+            <h5 id="category-modal-title" class="modal-title">Nueva categoría</h5>
+            <button class="btn-close" type="button" aria-label="Cerrar" (click)="cancelarNuevaCategoria()" [disabled]="guardando()"></button>
+          </div>
+
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label" for="category-name">Nombre</label>
+              <input #categoryNameInput id="category-name" class="form-control" type="text" formControlName="name" [class.is-invalid]="nombreCategoriaInvalido()" autocomplete="off">
+              @if (nombreCategoriaInvalido()) {
+                <div class="invalid-feedback">El nombre es obligatorio.</div>
+              }
+            </div>
+
+            <div class="mb-0">
+              <label class="form-label" for="category-description">Descripción</label>
+              <input id="category-description" class="form-control" type="text" formControlName="description" autocomplete="off">
+            </div>
+
+            @if (mensajeFormulario()) {
+              <div class="alert alert-danger mt-3 mb-0" role="alert">
+                {{ mensajeFormulario() }}
+              </div>
+            }
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn btn-light" type="button" (click)="cancelarNuevaCategoria()" [disabled]="guardando()">
+              Cancelar
+            </button>
+            <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+              {{ guardando() ? 'Guardando...' : 'Guardar' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

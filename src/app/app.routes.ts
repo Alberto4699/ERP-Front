@@ -5,6 +5,7 @@ import { MainLayout } from './layout/main-layout/main-layout';
 import { authGuard } from './core/guards/auth.guard';
 
 import { Login } from './features/auth/login/login';
+import { Categories } from './features/categories/categories';
 import { Dashboard } from './features/dashboard/dashboard';
 
 export const routes: Routes = [
@@ -31,6 +32,10 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         component: Dashboard
+      },
+      {
+        path: 'categories',
+        component: Categories
       }
     ]
   },
