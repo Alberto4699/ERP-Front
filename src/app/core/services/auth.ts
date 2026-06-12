@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
+import { environment } from '../../../environments/environment';
+import { ApiResponse } from '../models/api-response.model';
 import { LoginRequest } from '../models/login-request.model';
 import { LoginResponse } from '../models/login-response.model';
 
@@ -9,13 +10,12 @@ import { LoginResponse } from '../models/login-response.model';
   providedIn: 'root',
 })
 export class Auth {
+  private readonly apiUrl = `${environment.apiUrl}/Auth/login`;
 
-  private readonly apiUrl = 'https://localhost:7282/api/Auth/login';
+  constructor(private http: HttpClient) {}
 
-  constructor(private http: HttpClient) { }
-
-  login(datos: LoginRequest): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(this.apiUrl, datos);
+  login(datos: LoginRequest): Observable<ApiResponse<LoginResponse>> {
+    return this.http.post<ApiResponse<LoginResponse>>(this.apiUrl, datos);
   }
 
   guardarToken(token: string, recordar: boolean): void {

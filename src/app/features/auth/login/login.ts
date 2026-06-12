@@ -46,7 +46,7 @@ export class Login {
     this.cargando = true;
 
     const datos: LoginRequest = {
-      username: this.loginForm.value.username,
+      usuario: this.loginForm.value.username,
       password: this.loginForm.value.password
     };
 
@@ -54,7 +54,13 @@ export class Login {
 
     this.authService.login(datos).subscribe({
       next: (respuesta) => {
-        this.authService.guardarToken(respuesta.token, recordar);
+        if (!respuesta.success || !respuesta.data?.token) {
+          this.mensajeError = respuesta.message || 'No se pudo iniciar sesión.';
+          this.cargando = false;
+          return;
+        }
+
+        this.authService.guardarToken(respuesta.data.token, recordar);
         this.router.navigate(['/dashboard']);
       },
       error: (error) => {
