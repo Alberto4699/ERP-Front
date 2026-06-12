@@ -1,6 +1,17 @@
 import { DOCUMENT } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
+import { Router, RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+
+import { Auth } from '../../core/services/auth';
+import { Session } from '../../core/services/session';
+import { ThemeService } from '../../core/services/theme';
 
 @Component({
   selector: 'app-main-layout',
@@ -11,11 +22,22 @@ import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 })
 export class MainLayout implements OnInit {
   private readonly document = inject(DOCUMENT);
+  private readonly auth = inject(Auth);
+  private readonly router = inject(Router);
+  readonly session = inject(Session);
+  readonly theme = inject(ThemeService);
   private readonly mobileBreakpoint = 767;
 
   readonly menuExpanded = signal(false);
+  readonly displayName = computed(() => {
+    return this.auth.datosSesion()?.nombreCompleto || this.session.user()?.nombre || this.session.user()?.username || 'Usuario';
+  });
+  readonly displayRole = computed(
+    () => this.auth.datosSesion()?.role || this.session.user()?.roleName || 'Usuario',
+  );
 
   ngOnInit(): void {
+    this.theme.initialize();
     this.syncMenuState();
   }
 
@@ -33,9 +55,17 @@ export class MainLayout implements OnInit {
     html.classList.remove('sidebar-enable');
 
     const currentSize = html.getAttribute('data-sidenav-size') || 'default';
-    const nextSize = ['condensed', 'full', 'fullscreen'].includes(currentSize) ? 'default' : 'condensed';
+    const nextSize = ['condensed', 'full', 'fullscreen'].includes(currentSize)
+      ? 'default'
+      : 'condensed';
     html.setAttribute('data-sidenav-size', nextSize);
     this.menuExpanded.set(nextSize !== 'condensed');
+  }
+
+  cerrarSesion(): void {
+    this.auth.cerrarSesion();
+    this.session.clear();
+    void this.router.navigateByUrl('/login');
   }
 
   private syncMenuState(): void {
@@ -43,7 +73,7 @@ export class MainLayout implements OnInit {
     const currentSize = html.getAttribute('data-sidenav-size') || 'default';
 
     this.menuExpanded.set(
-      this.isMobile() ? html.classList.contains('sidebar-enable') : currentSize !== 'condensed'
+      this.isMobile() ? html.classList.contains('sidebar-enable') : currentSize !== 'condensed',
     );
   }
 

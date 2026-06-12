@@ -5,8 +5,10 @@ import { MainLayout } from './layout/main-layout/main-layout';
 import { authGuard } from './core/guards/auth.guard';
 
 import { Login } from './features/auth/login/login';
+import { Brands } from './features/brands/brands';
 import { Categories } from './features/categories/categories';
 import { Dashboard } from './features/dashboard/dashboard';
+import { MeasurementUnits } from './features/measurement-units/measurement-units';
 
 export const routes: Routes = [
   {
@@ -36,6 +38,14 @@ export const routes: Routes = [
       {
         path: 'categories',
         component: Categories
+      },
+      {
+        path: 'brands',
+        component: Brands
+      },
+      {
+        path: 'measurement-units',
+        component: MeasurementUnits
       }
     ]
   },

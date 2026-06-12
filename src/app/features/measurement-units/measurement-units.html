@@ -1,0 +1,218 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Unidades de medida</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de unidades de medida</h5>
+              <p class="text-muted mb-0">Administra las unidades usadas para registrar productos.</p>
+            </div>
+
+            <div>
+              <button #newMeasurementUnitButton class="btn btn-primary" type="button" (click)="nuevaUnidadMedida()" [disabled]="mostrandoFormulario() || guardando()">
+                Nueva unidad
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-md-5">
+              <label class="form-label" for="measurement-unit-search">Buscar</label>
+              <input id="measurement-unit-search" class="form-control" type="search" placeholder="Nombre o abreviatura" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="measurement-unit-active">Estado</label>
+              <select id="measurement-unit-active" class="form-select" formControlName="active">
+                <option value="">Todos</option>
+                <option value="true">Activas</option>
+                <option value="false">Inactivas</option>
+              </select>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Abreviatura</th>
+                  <th>Permite decimales</th>
+                  <th>Estado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4">Cargando unidades de medida...</td>
+                  </tr>
+                } @else {
+                  @for (measurementUnit of measurementUnits(); track trackMeasurementUnit($index, measurementUnit)) {
+                    <tr>
+                      <td>{{ measurementUnit.name }}</td>
+                      <td>{{ measurementUnit.abbreviation }}</td>
+                      <td>{{ allowsDecimals(measurementUnit) ? 'Sí' : 'No' }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isActive(measurementUnit)" [class.bg-secondary]="!isActive(measurementUnit)">
+                          {{ isActive(measurementUnit) ? 'Activa' : 'Inactiva' }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para ' + measurementUnit.name">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" [attr.aria-label]="'Ver unidad de medida ' + measurementUnit.name" (click)="verUnidadMedida(measurementUnit)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Editar" [attr.aria-label]="'Editar unidad de medida ' + measurementUnit.name" (click)="editarUnidadMedida(measurementUnit)">
+                            <i class="ri-pencil-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Editar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" [attr.aria-label]="'Eliminar unidad de medida ' + measurementUnit.name" (click)="eliminarUnidadMedida(measurementUnit)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Más acciones" [attr.aria-label]="'Más acciones para ' + measurementUnit.name" (click)="mostrarMasAcciones(measurementUnit)">
+                            <i class="ri-more-2-fill" aria-hidden="true"></i>
+                            <span class="visually-hidden">Más acciones</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="text-center text-muted py-4">No hay unidades de medida para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="measurement-unit-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="measurement-unit-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (selectedMeasurementUnit(); as measurementUnit) {
+                <dl class="row mb-0">
+                  <dt class="col-sm-5">Nombre</dt>
+                  <dd class="col-sm-7">{{ measurementUnit.name }}</dd>
+
+                  <dt class="col-sm-5">Abreviatura</dt>
+                  <dd class="col-sm-7">{{ measurementUnit.abbreviation }}</dd>
+
+                  <dt class="col-sm-5">Permite decimales</dt>
+                  <dd class="col-sm-7">{{ allowsDecimals(measurementUnit) ? 'Sí' : 'No' }}</dd>
+
+                  <dt class="col-sm-5">Estado</dt>
+                  <dd class="col-sm-7">{{ isActive(measurementUnit) ? 'Activa' : 'Inactiva' }}</dd>
+                </dl>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedMeasurementUnit(); as measurementUnit) {
+                <p class="mb-1">¿Deseas eliminar la unidad de medida <strong>{{ measurementUnit.name }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+
+              @if (mensajeFormulario()) {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                  {{ mensajeFormulario() }}
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="measurementUnitForm" (ngSubmit)="guardarUnidadMedida()" novalidate>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label" for="measurement-unit-name">Nombre</label>
+                  <input #measurementUnitNameInput id="measurement-unit-name" class="form-control" type="text" formControlName="name" [class.is-invalid]="nombreUnidadMedidaInvalido()" autocomplete="off">
+                  @if (nombreUnidadMedidaInvalido()) {
+                    <div class="invalid-feedback">El nombre es obligatorio.</div>
+                  }
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label" for="measurement-unit-abbreviation">Abreviatura</label>
+                  <input id="measurement-unit-abbreviation" class="form-control" type="text" formControlName="abbreviation" [class.is-invalid]="abreviaturaInvalida()" autocomplete="off">
+                  @if (abreviaturaInvalida()) {
+                    <div class="invalid-feedback">La abreviatura es obligatoria.</div>
+                  }
+                </div>
+
+                <div class="form-check mb-0">
+                  <input id="measurement-unit-allows-decimal" class="form-check-input" type="checkbox" formControlName="allowsDecimal">
+                  <label class="form-check-label" for="measurement-unit-allows-decimal">Permite decimales</label>
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mt-3 mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+                  {{ guardando() ? 'Guardando...' : modalMode() === 'edit' ? 'Guardar cambios' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

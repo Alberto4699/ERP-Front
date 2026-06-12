@@ -1,0 +1,205 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Marcas</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de marcas</h5>
+              <p class="text-muted mb-0">Administra las marcas usadas en el catálogo.</p>
+            </div>
+
+            <div>
+              <button #newBrandButton class="btn btn-primary" type="button" (click)="nuevaMarca()" [disabled]="mostrandoFormulario() || guardando()">
+                Nueva marca
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-md-5">
+              <label class="form-label" for="brand-search">Buscar</label>
+              <input id="brand-search" class="form-control" type="search" placeholder="Nombre o descripción" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="brand-active">Estado</label>
+              <select id="brand-active" class="form-select" formControlName="active">
+                <option value="">Todos</option>
+                <option value="true">Activas</option>
+                <option value="false">Inactivas</option>
+              </select>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Descripción</th>
+                  <th>Estado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="4" class="text-center text-muted py-4">Cargando marcas...</td>
+                  </tr>
+                } @else {
+                  @for (brand of brands(); track trackBrand($index, brand)) {
+                    <tr>
+                      <td>{{ brand.name }}</td>
+                      <td>{{ brand.description || '-' }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isActive(brand)" [class.bg-secondary]="!isActive(brand)">
+                          {{ isActive(brand) ? 'Activa' : 'Inactiva' }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para ' + brand.name">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" [attr.aria-label]="'Ver marca ' + brand.name" (click)="verMarca(brand)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Editar" [attr.aria-label]="'Editar marca ' + brand.name" (click)="editarMarca(brand)">
+                            <i class="ri-pencil-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Editar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" [attr.aria-label]="'Eliminar marca ' + brand.name" (click)="eliminarMarca(brand)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Más acciones" [attr.aria-label]="'Más acciones para ' + brand.name" (click)="mostrarMasAcciones(brand)">
+                            <i class="ri-more-2-fill" aria-hidden="true"></i>
+                            <span class="visually-hidden">Más acciones</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="4" class="text-center text-muted py-4">No hay marcas para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="brand-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="brand-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (selectedBrand(); as brand) {
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">Nombre</dt>
+                  <dd class="col-sm-8">{{ brand.name }}</dd>
+
+                  <dt class="col-sm-4">Descripción</dt>
+                  <dd class="col-sm-8">{{ brand.description || '-' }}</dd>
+
+                  <dt class="col-sm-4">Estado</dt>
+                  <dd class="col-sm-8">{{ isActive(brand) ? 'Activa' : 'Inactiva' }}</dd>
+                </dl>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedBrand(); as brand) {
+                <p class="mb-1">¿Deseas eliminar la marca <strong>{{ brand.name }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+
+              @if (mensajeFormulario()) {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                  {{ mensajeFormulario() }}
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="brandForm" (ngSubmit)="guardarMarca()" novalidate>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label" for="brand-name">Nombre</label>
+                  <input #brandNameInput id="brand-name" class="form-control" type="text" formControlName="name" [class.is-invalid]="nombreMarcaInvalido()" autocomplete="off">
+                  @if (nombreMarcaInvalido()) {
+                    <div class="invalid-feedback">El nombre es obligatorio.</div>
+                  }
+                </div>
+
+                <div class="mb-0">
+                  <label class="form-label" for="brand-description">Descripción</label>
+                  <input id="brand-description" class="form-control" type="text" formControlName="description" autocomplete="off">
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mt-3 mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+                  {{ guardando() ? 'Guardando...' : modalMode() === 'edit' ? 'Guardar cambios' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
