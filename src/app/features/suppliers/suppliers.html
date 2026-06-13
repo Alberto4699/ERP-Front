@@ -1,0 +1,305 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Proveedores</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de proveedores</h5>
+              <p class="text-muted mb-0">Administra los proveedores usados en compras.</p>
+            </div>
+
+            <div>
+              <button #newSupplierButton class="btn btn-primary" type="button" (click)="nuevoProveedor()" [disabled]="mostrandoFormulario() || guardando()">
+                Nuevo proveedor
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-md-5">
+              <label class="form-label" for="supplier-search">Buscar</label>
+              <input id="supplier-search" class="form-control" type="search" placeholder="Nombre, RFC o contacto" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="supplier-active">Estado</label>
+              <select id="supplier-active" class="form-select" formControlName="active">
+                <option value="">Todos</option>
+                <option value="true">Activos</option>
+                <option value="false">Inactivos</option>
+              </select>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>RFC</th>
+                  <th>Contacto</th>
+                  <th>Teléfono</th>
+                  <th>Email</th>
+                  <th>Estado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">Cargando proveedores...</td>
+                  </tr>
+                } @else {
+                  @for (supplier of suppliers(); track trackSupplier($index, supplier)) {
+                    <tr>
+                      <td>{{ supplier.name }}</td>
+                      <td>{{ supplier.rfc || '-' }}</td>
+                      <td>{{ supplier.contact || '-' }}</td>
+                      <td>{{ supplier.phone || '-' }}</td>
+                      <td>{{ supplier.email || '-' }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isActive(supplier)" [class.bg-secondary]="!isActive(supplier)">
+                          {{ isActive(supplier) ? 'Activo' : 'Inactivo' }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para ' + supplier.name">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" [attr.aria-label]="'Ver proveedor ' + supplier.name" (click)="verProveedor(supplier)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Editar" [attr.aria-label]="'Editar proveedor ' + supplier.name" (click)="editarProveedor(supplier)">
+                            <i class="ri-pencil-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Editar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" [attr.aria-label]="'Eliminar proveedor ' + supplier.name" (click)="eliminarProveedor(supplier)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones" [attr.aria-label]="'Más acciones para ' + supplier.name">
+                              <i class="ri-more-2-fill" aria-hidden="true"></i>
+                              <span class="visually-hidden">Más acciones</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                              <button class="dropdown-item" type="button" (click)="cambiarEstadoProveedor(supplier)">
+                                @if (isActive(supplier)) {
+                                  <i class="ri-close-circle-line me-1" aria-hidden="true"></i>
+                                  Desactivar
+                                } @else {
+                                  <i class="ri-checkbox-circle-line me-1" aria-hidden="true"></i>
+                                  Activar
+                                }
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">No hay proveedores para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="supplier-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="supplier-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (selectedSupplier(); as supplier) {
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">Nombre</dt>
+                  <dd class="col-sm-8">{{ supplier.name }}</dd>
+
+                  <dt class="col-sm-4">RFC</dt>
+                  <dd class="col-sm-8">{{ supplier.rfc || '-' }}</dd>
+
+                  <dt class="col-sm-4">Teléfono</dt>
+                  <dd class="col-sm-8">{{ supplier.phone || '-' }}</dd>
+
+                  <dt class="col-sm-4">Email</dt>
+                  <dd class="col-sm-8">{{ supplier.email || '-' }}</dd>
+
+                  <dt class="col-sm-4">Dirección</dt>
+                  <dd class="col-sm-8">{{ supplier.address || '-' }}</dd>
+
+                  <dt class="col-sm-4">Contacto</dt>
+                  <dd class="col-sm-8">{{ supplier.contact || '-' }}</dd>
+
+                  <dt class="col-sm-4">Estado</dt>
+                  <dd class="col-sm-8">{{ isActive(supplier) ? 'Activo' : 'Inactivo' }}</dd>
+                </dl>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedSupplier(); as supplier) {
+                <p class="mb-1">¿Deseas eliminar el proveedor <strong>{{ supplier.name }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+
+              @if (mensajeFormulario()) {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                  {{ mensajeFormulario() }}
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @case ('activate') {
+            <div class="modal-body">
+              @if (selectedSupplier(); as supplier) {
+                <p class="mb-1">¿Deseas activar el proveedor <strong>{{ supplier.name }}</strong>?</p>
+                <p class="text-muted mb-0">El proveedor volverá a estar disponible para operación.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Activando...' : 'Activar' }}
+              </button>
+            </div>
+          }
+
+          @case ('deactivate') {
+            <div class="modal-body">
+              @if (selectedSupplier(); as supplier) {
+                <p class="mb-1">¿Deseas desactivar el proveedor <strong>{{ supplier.name }}</strong>?</p>
+                <p class="text-muted mb-0">El proveedor quedará inactivo para nuevas operaciones.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Desactivando...' : 'Desactivar' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="supplierForm" (ngSubmit)="guardarProveedor()" novalidate>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label" for="supplier-name">Nombre</label>
+                  <input #supplierNameInput id="supplier-name" class="form-control" type="text" maxlength="200" formControlName="name" [class.is-invalid]="campoInvalido('name')" autocomplete="off">
+                  @if (campoInvalido('name')) {
+                    <div class="invalid-feedback">El nombre es obligatorio y debe tener máximo 200 caracteres.</div>
+                  }
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="supplier-rfc">RFC</label>
+                    <input id="supplier-rfc" class="form-control" type="text" maxlength="20" formControlName="rfc" [class.is-invalid]="campoInvalido('rfc')" autocomplete="off">
+                    @if (campoInvalido('rfc')) {
+                      <div class="invalid-feedback">El RFC debe tener máximo 20 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="supplier-contact">Contacto</label>
+                    <input id="supplier-contact" class="form-control" type="text" maxlength="150" formControlName="contact" [class.is-invalid]="campoInvalido('contact')" autocomplete="off">
+                    @if (campoInvalido('contact')) {
+                      <div class="invalid-feedback">El contacto debe tener máximo 150 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="supplier-phone">Teléfono</label>
+                    <input id="supplier-phone" class="form-control" type="tel" maxlength="20" formControlName="phone" [class.is-invalid]="campoInvalido('phone')" autocomplete="off">
+                    @if (campoInvalido('phone')) {
+                      <div class="invalid-feedback">El teléfono debe tener máximo 20 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="supplier-email">Email</label>
+                    <input id="supplier-email" class="form-control" type="email" maxlength="150" formControlName="email" [class.is-invalid]="campoInvalido('email')" autocomplete="off">
+                    @if (campoInvalido('email')) {
+                      <div class="invalid-feedback">Ingresa un email válido de máximo 150 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="mb-0">
+                  <label class="form-label" for="supplier-address">Dirección</label>
+                  <input id="supplier-address" class="form-control" type="text" maxlength="255" formControlName="address" [class.is-invalid]="campoInvalido('address')" autocomplete="off">
+                  @if (campoInvalido('address')) {
+                    <div class="invalid-feedback">La dirección debe tener máximo 255 caracteres.</div>
+                  }
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mt-3 mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+                  {{ guardando() ? 'Guardando...' : modalMode() === 'edit' ? 'Guardar cambios' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
