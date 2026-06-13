@@ -9,6 +9,7 @@ import { Brands } from './features/brands/brands';
 import { Categories } from './features/categories/categories';
 import { Dashboard } from './features/dashboard/dashboard';
 import { MeasurementUnits } from './features/measurement-units/measurement-units';
+import { Products } from './features/products/products';
 
 export const routes: Routes = [
   {
@@ -46,6 +47,10 @@ export const routes: Routes = [
       {
         path: 'measurement-units',
         component: MeasurementUnits
+      },
+      {
+        path: 'products',
+        component: Products
       }
     ]
   },

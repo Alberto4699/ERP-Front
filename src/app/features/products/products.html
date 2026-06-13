@@ -1,0 +1,448 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Productos</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de productos</h5>
+              <p class="text-muted mb-0">Administra los productos usados en inventario, compras y ventas.</p>
+            </div>
+
+            <div>
+              <button #newProductButton class="btn btn-primary" type="button" (click)="nuevoProducto()" [disabled]="mostrandoFormulario() || guardando()">
+                Nuevo producto
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-lg-3">
+              <label class="form-label" for="product-search">Buscar</label>
+              <input id="product-search" class="form-control" type="search" placeholder="Código, nombre o código de barras" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label" for="product-category-filter">Categoría</label>
+              <select id="product-category-filter" class="form-select" formControlName="categoryId">
+                <option value="">Todas</option>
+                @for (category of categories(); track trackCategory($index, category)) {
+                  <option [value]="catalogCategoryId(category)">{{ category.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label" for="product-brand-filter">Marca</label>
+              <select id="product-brand-filter" class="form-select" formControlName="brandId">
+                <option value="">Todas</option>
+                @for (brand of brands(); track trackBrand($index, brand)) {
+                  <option [value]="catalogBrandId(brand)">{{ brand.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label" for="product-active-filter">Estado</label>
+              <select id="product-active-filter" class="form-select" formControlName="active">
+                <option value="">Todos</option>
+                <option value="true">Activos</option>
+                <option value="false">Inactivos</option>
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label" for="product-inventory-filter">Inventario</label>
+              <select id="product-inventory-filter" class="form-select" formControlName="tracksInventory">
+                <option value="">Todos</option>
+                <option value="true">Controla inventario</option>
+                <option value="false">Sin inventario</option>
+              </select>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Marca</th>
+                  <th>Unidad</th>
+                  <th>Precio venta</th>
+                  <th>Inventario</th>
+                  <th>Estado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="9" class="text-center text-muted py-4">Cargando productos...</td>
+                  </tr>
+                } @else {
+                  @for (product of products(); track trackProduct($index, product)) {
+                    <tr>
+                      <td>{{ product.code }}</td>
+                      <td>
+                        <div class="fw-semibold">{{ product.name }}</div>
+                        @if (product.barcode) {
+                          <small class="text-muted">{{ product.barcode }}</small>
+                        }
+                      </td>
+                      <td>{{ product.categoryName }}</td>
+                      <td>{{ product.brandName || '-' }}</td>
+                      <td>{{ product.measurementUnitAbbreviation }}</td>
+                      <td>{{ formatCurrency(product.salePrice) }}</td>
+                      <td>
+                        <span class="badge" [class.bg-info]="tracksInventory(product)" [class.bg-secondary]="!tracksInventory(product)">
+                          {{ tracksInventory(product) ? 'Sí' : 'No' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isActive(product)" [class.bg-secondary]="!isActive(product)">
+                          {{ isActive(product) ? 'Activo' : 'Inactivo' }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para ' + product.name">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" [attr.aria-label]="'Ver producto ' + product.name" (click)="verProducto(product)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Editar" [attr.aria-label]="'Editar producto ' + product.name" (click)="editarProducto(product)">
+                            <i class="ri-pencil-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Editar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" [attr.aria-label]="'Eliminar producto ' + product.name" (click)="eliminarProducto(product)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones" [attr.aria-label]="'Más acciones para ' + product.name">
+                              <i class="ri-more-2-fill" aria-hidden="true"></i>
+                              <span class="visually-hidden">Más acciones</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                              <button class="dropdown-item" type="button" (click)="cambiarEstadoProducto(product)">
+                                @if (isActive(product)) {
+                                  <i class="ri-close-circle-line me-1" aria-hidden="true"></i>
+                                  Desactivar
+                                } @else {
+                                  <i class="ri-checkbox-circle-line me-1" aria-hidden="true"></i>
+                                  Activar
+                                }
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="9" class="text-center text-muted py-4">No hay productos para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="product-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered" [class.modal-lg]="modalMode() === 'create' || modalMode() === 'edit' || modalMode() === 'view'">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="product-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (cargandoDetalle()) {
+                <p class="text-muted mb-0">Cargando producto...</p>
+              } @else if (detailProduct(); as product) {
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">Código</dt>
+                  <dd class="col-sm-8">{{ product.code }}</dd>
+
+                  <dt class="col-sm-4">Código de barras</dt>
+                  <dd class="col-sm-8">{{ product.barcode || '-' }}</dd>
+
+                  <dt class="col-sm-4">Nombre</dt>
+                  <dd class="col-sm-8">{{ product.name }}</dd>
+
+                  <dt class="col-sm-4">Descripción</dt>
+                  <dd class="col-sm-8">{{ product.description || '-' }}</dd>
+
+                  <dt class="col-sm-4">Categoría</dt>
+                  <dd class="col-sm-8">{{ product.categoryName }}</dd>
+
+                  <dt class="col-sm-4">Marca</dt>
+                  <dd class="col-sm-8">{{ product.brandName || '-' }}</dd>
+
+                  <dt class="col-sm-4">Unidad de medida</dt>
+                  <dd class="col-sm-8">{{ product.measurementUnitName }} ({{ product.measurementUnitAbbreviation }})</dd>
+
+                  <dt class="col-sm-4">Precio compra</dt>
+                  <dd class="col-sm-8">{{ formatCurrency(product.purchasePrice) }}</dd>
+
+                  <dt class="col-sm-4">Precio venta</dt>
+                  <dd class="col-sm-8">{{ formatCurrency(product.salePrice) }}</dd>
+
+                  <dt class="col-sm-4">Stock mínimo</dt>
+                  <dd class="col-sm-8">{{ product.minimumStock }}</dd>
+
+                  <dt class="col-sm-4">Stock máximo</dt>
+                  <dd class="col-sm-8">{{ product.maximumStock ?? '-' }}</dd>
+
+                  <dt class="col-sm-4">Controla inventario</dt>
+                  <dd class="col-sm-8">{{ tracksInventory(product) ? 'Sí' : 'No' }}</dd>
+
+                  <dt class="col-sm-4">Estado</dt>
+                  <dd class="col-sm-8">{{ isActive(product) ? 'Activo' : 'Inactivo' }}</dd>
+
+                  <dt class="col-sm-4">Fecha de creación</dt>
+                  <dd class="col-sm-8">{{ formatDate(product.createdAt) }}</dd>
+                </dl>
+              } @else {
+                <div class="alert alert-danger mb-0" role="alert">
+                  {{ mensajeFormulario() || 'No se pudo cargar el producto.' }}
+                </div>
+              }
+
+              @if (mensajeFormulario() && detailProduct()) {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                  {{ mensajeFormulario() }}
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedProduct(); as product) {
+                <p class="mb-1">¿Deseas eliminar el producto <strong>{{ product.name }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+
+              @if (mensajeFormulario()) {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                  {{ mensajeFormulario() }}
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @case ('activate') {
+            <div class="modal-body">
+              @if (selectedProduct(); as product) {
+                <p class="mb-1">¿Deseas activar el producto <strong>{{ product.name }}</strong>?</p>
+                <p class="text-muted mb-0">El producto volverá a estar disponible para operación.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Activando...' : 'Activar' }}
+              </button>
+            </div>
+          }
+
+          @case ('deactivate') {
+            <div class="modal-body">
+              @if (selectedProduct(); as product) {
+                <p class="mb-1">¿Deseas desactivar el producto <strong>{{ product.name }}</strong>?</p>
+                <p class="text-muted mb-0">El producto quedará inactivo para nuevas operaciones.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Desactivando...' : 'Desactivar' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            @if (modalMode() === 'edit' && cargandoDetalle()) {
+              <div class="modal-body">
+                <p class="text-muted mb-0">Cargando producto...</p>
+              </div>
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+              </div>
+            } @else {
+              <form [formGroup]="productForm" (ngSubmit)="guardarProducto()" novalidate>
+                <div class="modal-body">
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label" for="product-category">Categoría</label>
+                      <select id="product-category" class="form-select" formControlName="categoryId" [class.is-invalid]="campoInvalido('categoryId')">
+                        <option value="">Selecciona una categoría</option>
+                        @for (category of categories(); track trackCategory($index, category)) {
+                          <option [value]="catalogCategoryId(category)">{{ category.name }}</option>
+                        }
+                      </select>
+                      @if (campoInvalido('categoryId')) {
+                        <div class="invalid-feedback">Selecciona una categoría.</div>
+                      }
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label" for="product-brand">Marca</label>
+                      <select id="product-brand" class="form-select" formControlName="brandId">
+                        <option value="">Sin marca</option>
+                        @for (brand of brands(); track trackBrand($index, brand)) {
+                          <option [value]="catalogBrandId(brand)">{{ brand.name }}</option>
+                        }
+                      </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label" for="product-measurement-unit">Unidad de medida</label>
+                      <select id="product-measurement-unit" class="form-select" formControlName="measurementUnitId" [class.is-invalid]="campoInvalido('measurementUnitId')">
+                        <option value="">Selecciona una unidad</option>
+                        @for (measurementUnit of measurementUnits(); track trackMeasurementUnit($index, measurementUnit)) {
+                          <option [value]="catalogMeasurementUnitId(measurementUnit)">{{ measurementUnit.name }} ({{ measurementUnit.abbreviation }})</option>
+                        }
+                      </select>
+                      @if (campoInvalido('measurementUnitId')) {
+                        <div class="invalid-feedback">Selecciona una unidad de medida.</div>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label" for="product-code">Código</label>
+                      <input id="product-code" class="form-control" type="text" maxlength="50" formControlName="code" [class.is-invalid]="campoInvalido('code')" autocomplete="off">
+                      @if (campoInvalido('code')) {
+                        <div class="invalid-feedback">El código es obligatorio y debe tener máximo 50 caracteres.</div>
+                      }
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label" for="product-barcode">Código de barras</label>
+                      <input id="product-barcode" class="form-control" type="text" maxlength="100" formControlName="barcode" [class.is-invalid]="campoInvalido('barcode')" autocomplete="off">
+                      @if (campoInvalido('barcode')) {
+                        <div class="invalid-feedback">El código de barras debe tener máximo 100 caracteres.</div>
+                      }
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label" for="product-name">Nombre</label>
+                      <input #productNameInput id="product-name" class="form-control" type="text" maxlength="200" formControlName="name" [class.is-invalid]="campoInvalido('name')" autocomplete="off">
+                      @if (campoInvalido('name')) {
+                        <div class="invalid-feedback">El nombre es obligatorio y debe tener máximo 200 caracteres.</div>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label" for="product-description">Descripción</label>
+                    <textarea id="product-description" class="form-control" rows="2" maxlength="500" formControlName="description" [class.is-invalid]="campoInvalido('description')"></textarea>
+                    @if (campoInvalido('description')) {
+                      <div class="invalid-feedback">La descripción debe tener máximo 500 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="row">
+                    <div class="col-md-3 mb-3">
+                      <label class="form-label" for="product-purchase-price">Precio compra</label>
+                      <input id="product-purchase-price" class="form-control" type="number" min="0" step="0.01" inputmode="decimal" formControlName="purchasePrice" [class.is-invalid]="campoInvalido('purchasePrice')">
+                      @if (campoInvalido('purchasePrice')) {
+                        <div class="invalid-feedback">Ingresa un precio válido.</div>
+                      }
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                      <label class="form-label" for="product-sale-price">Precio venta</label>
+                      <input id="product-sale-price" class="form-control" type="number" min="0" step="0.01" inputmode="decimal" formControlName="salePrice" [class.is-invalid]="campoInvalido('salePrice')">
+                      @if (campoInvalido('salePrice')) {
+                        <div class="invalid-feedback">Ingresa un precio válido.</div>
+                      }
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                      <label class="form-label" for="product-minimum-stock">Stock mínimo</label>
+                      <input id="product-minimum-stock" class="form-control" type="number" min="0" step="0.0001" inputmode="decimal" formControlName="minimumStock" [class.is-invalid]="campoInvalido('minimumStock')">
+                      @if (campoInvalido('minimumStock')) {
+                        <div class="invalid-feedback">Ingresa un stock mínimo válido.</div>
+                      }
+                    </div>
+
+                    <div class="col-md-3 mb-3">
+                      <label class="form-label" for="product-maximum-stock">Stock máximo</label>
+                      <input id="product-maximum-stock" class="form-control" type="number" min="0" step="0.0001" inputmode="decimal" formControlName="maximumStock" [class.is-invalid]="campoInvalido('maximumStock')">
+                      @if (campoInvalido('maximumStock')) {
+                        <div class="invalid-feedback">Ingresa un stock máximo válido.</div>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="form-check mb-0">
+                    <input id="product-tracks-inventory" class="form-check-input" type="checkbox" formControlName="tracksInventory">
+                    <label class="form-check-label" for="product-tracks-inventory">Controla inventario</label>
+                  </div>
+
+                  @if (mensajeFormulario()) {
+                    <div class="alert alert-danger mt-3 mb-0" role="alert">
+                      {{ mensajeFormulario() }}
+                    </div>
+                  }
+                </div>
+
+                <div class="modal-footer">
+                  <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                  <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+                    {{ guardando() ? 'Guardando...' : modalMode() === 'edit' ? 'Guardar cambios' : 'Guardar' }}
+                  </button>
+                </div>
+              </form>
+            }
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
