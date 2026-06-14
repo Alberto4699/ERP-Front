@@ -28,3 +28,12 @@ export interface InventoryFilters {
   productId?: number;
   lowStock?: boolean;
 }
+
+export interface InventoryAdjustmentRequest {
+  warehouseId: number;
+  productId: number;
+  inventoryMovementTypeId: number;
+  quantity: number;
+  reference?: string | null;
+  notes?: string | null;
+}

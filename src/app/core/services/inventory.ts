@@ -4,7 +4,7 @@ import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api-response.model';
-import { InventoryFilters, InventoryStock } from '../models/inventory.model';
+import { InventoryAdjustmentRequest, InventoryFilters, InventoryStock } from '../models/inventory.model';
 
 @Injectable({
   providedIn: 'root',
@@ -37,5 +37,9 @@ export class InventoryService {
 
   getById(id: number): Observable<ApiResponse<InventoryStock>> {
     return this.http.get<ApiResponse<InventoryStock>>(`${this.apiUrl}/${id}`);
+  }
+
+  createAdjustment(request: InventoryAdjustmentRequest): Observable<ApiResponse<null>> {
+    return this.http.post<ApiResponse<null>>(`${this.apiUrl}/adjustments`, request);
   }
 }

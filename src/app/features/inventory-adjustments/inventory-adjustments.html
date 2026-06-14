@@ -1,0 +1,129 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Ajustes de inventario</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12 col-xl-9">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Registrar ajuste</h5>
+              <p class="text-muted mb-0">Captura entradas, salidas o correcciones de inventario.</p>
+            </div>
+
+            <div>
+              <button class="btn btn-light" type="button" (click)="loadCatalogs()" [disabled]="cargandoCatalogos() || guardando()">
+                {{ cargandoCatalogos() ? 'Actualizando...' : 'Actualizar catálogos' }}
+              </button>
+            </div>
+          </div>
+
+          @if (mensajeCatalogos()) {
+            <div class="alert alert-warning" role="alert">
+              {{ mensajeCatalogos() }}
+            </div>
+          }
+
+          <form [formGroup]="adjustmentForm" (ngSubmit)="guardarAjuste()" novalidate>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="adjustment-warehouse">Almacén</label>
+                <select id="adjustment-warehouse" class="form-select" formControlName="warehouseId" [class.is-invalid]="campoInvalido('warehouseId')" [disabled]="cargandoCatalogos() || guardando()">
+                  <option value="">Selecciona un almacén</option>
+                  @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                    <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                  }
+                </select>
+                @if (campoInvalido('warehouseId')) {
+                  <div class="invalid-feedback">Selecciona un almacén.</div>
+                }
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="adjustment-product">Producto</label>
+                <select id="adjustment-product" class="form-select" formControlName="productId" [class.is-invalid]="campoInvalido('productId')" [disabled]="cargandoCatalogos() || guardando()">
+                  <option value="">Selecciona un producto</option>
+                  @for (product of products(); track trackProduct($index, product)) {
+                    <option [value]="product.id">{{ productLabel(product) }}</option>
+                  }
+                </select>
+                @if (campoInvalido('productId')) {
+                  <div class="invalid-feedback">Selecciona un producto.</div>
+                }
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="adjustment-type">Tipo de movimiento</label>
+                <select id="adjustment-type" class="form-select" formControlName="inventoryMovementTypeId" [class.is-invalid]="campoInvalido('inventoryMovementTypeId')" [disabled]="cargandoCatalogos() || guardando()">
+                  <option value="">Selecciona un tipo</option>
+                  @for (movementType of movementTypes(); track trackMovementType($index, movementType)) {
+                    <option [value]="getMovementTypeId(movementType) ?? ''">{{ movementTypeLabel(movementType) }}</option>
+                  }
+                </select>
+                @if (campoInvalido('inventoryMovementTypeId')) {
+                  <div class="invalid-feedback">Selecciona un tipo de movimiento.</div>
+                }
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="adjustment-quantity">Cantidad</label>
+                <input id="adjustment-quantity" class="form-control" type="number" min="0.0001" step="0.0001" formControlName="quantity" [class.is-invalid]="campoInvalido('quantity')" [disabled]="guardando()">
+                @if (campoInvalido('quantity')) {
+                  <div class="invalid-feedback">Ingresa una cantidad mayor a cero.</div>
+                }
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="adjustment-reference">Referencia</label>
+                <input id="adjustment-reference" class="form-control" type="text" maxlength="150" formControlName="reference" [class.is-invalid]="campoInvalido('reference')" autocomplete="off">
+                @if (campoInvalido('reference')) {
+                  <div class="invalid-feedback">La referencia debe tener máximo 150 caracteres.</div>
+                }
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label" for="adjustment-notes">Notas</label>
+                <textarea id="adjustment-notes" class="form-control" rows="3" maxlength="500" formControlName="notes" [class.is-invalid]="campoInvalido('notes')"></textarea>
+                @if (campoInvalido('notes')) {
+                  <div class="invalid-feedback">Las notas deben tener máximo 500 caracteres.</div>
+                }
+              </div>
+            </div>
+
+            @if (mensajeFormulario()) {
+              <div class="alert alert-danger" role="alert">
+                {{ mensajeFormulario() }}
+              </div>
+            }
+
+            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+              <button class="btn btn-light" type="button" (click)="limpiarFormulario()" [disabled]="guardando()">Limpiar</button>
+              <button class="btn btn-primary" type="submit" [disabled]="guardando() || cargandoCatalogos()">
+                {{ guardando() ? 'Registrando...' : 'Registrar ajuste' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-3">
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title mb-2">Importante</h5>
+          <p class="text-muted mb-0">Cada ajuste generará un movimiento de inventario con el tipo seleccionado y actualizará la existencia del producto en el almacén.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
