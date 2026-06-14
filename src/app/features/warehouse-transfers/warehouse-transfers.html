@@ -1,0 +1,415 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Traspasos entre almacenes</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de traspasos</h5>
+              <p class="text-muted mb-0">Administra transferencias de inventario entre almacenes.</p>
+            </div>
+
+            <div>
+              <button #newTransferButton class="btn btn-primary" type="button" (click)="nuevoTraspaso()" [disabled]="mostrandoFormulario() || guardando()">
+                Nuevo traspaso
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="transfer-search">Buscar</label>
+              <input id="transfer-search" class="form-control" type="search" placeholder="Folio, almacén o producto" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="transfer-branch-filter">Sucursal</label>
+              <select id="transfer-branch-filter" class="form-select" formControlName="branchId" [disabled]="cargandoCatalogos()">
+                <option value="">Todas</option>
+                @for (branch of branches(); track trackBranch($index, branch)) {
+                  <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="transfer-source-filter">Origen</label>
+              <select id="transfer-source-filter" class="form-select" formControlName="sourceWarehouseId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                  <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="transfer-destination-filter">Destino</label>
+              <select id="transfer-destination-filter" class="form-select" formControlName="destinationWarehouseId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                  <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="transfer-status-filter">Estado</label>
+              <input id="transfer-status-filter" class="form-control" type="text" placeholder="Pendiente" formControlName="status">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="transfer-from-date">Desde</label>
+              <input id="transfer-from-date" class="form-control" type="date" formControlName="fromDate">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="transfer-to-date">Hasta</label>
+              <input id="transfer-to-date" class="form-control" type="date" formControlName="toDate">
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Fecha</th>
+                  <th>Sucursal</th>
+                  <th>Origen</th>
+                  <th>Destino</th>
+                  <th>Estado</th>
+                  <th class="text-end">Cantidad</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Cargando traspasos...</td>
+                  </tr>
+                } @else {
+                  @for (transfer of transfers(); track trackTransfer($index, transfer)) {
+                    <tr>
+                      <td>{{ transfer.folio || '-' }}</td>
+                      <td>{{ transferDate(transfer) }}</td>
+                      <td>{{ branchName(transfer) }}</td>
+                      <td>{{ sourceWarehouseName(transfer) }}</td>
+                      <td>{{ destinationWarehouseName(transfer) }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isConfirmed(transfer)" [class.bg-danger]="isCancelled(transfer)" [class.bg-secondary]="!isConfirmed(transfer) && !isCancelled(transfer)">
+                          {{ statusText(transfer) }}
+                        </span>
+                      </td>
+                      <td class="text-end">{{ totalQuantity(transfer) }}</td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para traspaso ' + (transfer.folio || '')">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" aria-label="Ver traspaso" (click)="verTraspaso(transfer)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" aria-label="Eliminar traspaso" (click)="eliminarTraspaso(transfer)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones" aria-label="Más acciones para traspaso">
+                              <i class="ri-more-2-fill" aria-hidden="true"></i>
+                              <span class="visually-hidden">Más acciones</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                              @if (canConfirm(transfer)) {
+                                <button class="dropdown-item" type="button" (click)="confirmarTraspaso(transfer)">
+                                  <i class="ri-checkbox-circle-line me-1" aria-hidden="true"></i>
+                                  Confirmar
+                                </button>
+                              }
+                              @if (canCancel(transfer)) {
+                                <button class="dropdown-item" type="button" (click)="cancelarTraspaso(transfer)">
+                                  <i class="ri-close-circle-line me-1" aria-hidden="true"></i>
+                                  Cancelar
+                                </button>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">No hay traspasos para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="transfer-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered" [class.modal-xl]="modalMode() === 'create' || modalMode() === 'view'">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="transfer-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button #modalCloseButton class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (cargandoDetalle()) {
+                <p class="text-muted mb-0">Cargando detalle...</p>
+              } @else if (selectedTransfer(); as transfer) {
+                <dl class="row mb-4">
+                  <dt class="col-sm-4">Folio</dt>
+                  <dd class="col-sm-8">{{ transfer.folio || '-' }}</dd>
+
+                  <dt class="col-sm-4">Fecha</dt>
+                  <dd class="col-sm-8">{{ transferDate(transfer) }}</dd>
+
+                  <dt class="col-sm-4">Sucursal</dt>
+                  <dd class="col-sm-8">{{ branchName(transfer) }}</dd>
+
+                  <dt class="col-sm-4">Origen</dt>
+                  <dd class="col-sm-8">{{ sourceWarehouseName(transfer) }}</dd>
+
+                  <dt class="col-sm-4">Destino</dt>
+                  <dd class="col-sm-8">{{ destinationWarehouseName(transfer) }}</dd>
+
+                  <dt class="col-sm-4">Estado</dt>
+                  <dd class="col-sm-8">{{ statusText(transfer) }}</dd>
+
+                  <dt class="col-sm-4">Notas</dt>
+                  <dd class="col-sm-8">{{ transfer.notes || '-' }}</dd>
+                </dl>
+
+                <div class="table-responsive">
+                  <table class="table table-sm table-centered mb-0">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Código</th>
+                        <th class="text-end">Cantidad</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (detail of transfer.details ?? []; track trackTransferDetail($index, detail)) {
+                        <tr>
+                          <td>{{ productName(detail) }}</td>
+                          <td>{{ productCode(detail) }}</td>
+                          <td class="text-end">{{ formatQuantity(detail.quantity) }}</td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="3" class="text-center text-muted py-3">No hay partidas para mostrar.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedTransfer(); as transfer) {
+                <p class="mb-1">¿Deseas eliminar el traspaso <strong>{{ transfer.folio || 'sin folio' }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @case ('confirm') {
+            <div class="modal-body">
+              @if (selectedTransfer(); as transfer) {
+                <p class="mb-1">¿Deseas confirmar el traspaso <strong>{{ transfer.folio || 'sin folio' }}</strong>?</p>
+                <p class="text-muted mb-0">Se aplicará la salida del almacén origen y la entrada al almacén destino.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Confirmando...' : 'Confirmar' }}
+              </button>
+            </div>
+          }
+
+          @case ('cancel') {
+            <div class="modal-body">
+              @if (selectedTransfer(); as transfer) {
+                <p class="mb-1">¿Deseas cancelar el traspaso <strong>{{ transfer.folio || 'sin folio' }}</strong>?</p>
+                <p class="text-muted mb-0">El traspaso quedará cancelado.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Cancelando...' : 'Cancelar traspaso' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="transferForm" (ngSubmit)="guardarTraspaso()" novalidate>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="transfer-branch">Sucursal</label>
+                    <select id="transfer-branch" class="form-select" formControlName="branchId" [class.is-invalid]="campoInvalido('branchId')" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Selecciona una sucursal</option>
+                      @for (branch of branches(); track trackBranch($index, branch)) {
+                        <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('branchId')) {
+                      <div class="invalid-feedback">Selecciona una sucursal.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="transfer-source">Almacén origen</label>
+                    <select id="transfer-source" class="form-select" formControlName="sourceWarehouseId" [class.is-invalid]="campoInvalido('sourceWarehouseId')" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Selecciona origen</option>
+                      @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                        <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('sourceWarehouseId')) {
+                      <div class="invalid-feedback">Selecciona el almacén origen.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="transfer-destination">Almacén destino</label>
+                    <select id="transfer-destination" class="form-select" formControlName="destinationWarehouseId" [class.is-invalid]="campoInvalido('destinationWarehouseId') || sameWarehouses()" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Selecciona destino</option>
+                      @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                        <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('destinationWarehouseId')) {
+                      <div class="invalid-feedback">Selecciona el almacén destino.</div>
+                    } @else if (sameWarehouses()) {
+                      <div class="invalid-feedback">Origen y destino deben ser diferentes.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="transfer-folio">Folio</label>
+                    <input id="transfer-folio" class="form-control" type="text" maxlength="50" formControlName="folio" [class.is-invalid]="campoInvalido('folio')" autocomplete="off">
+                    @if (campoInvalido('folio')) {
+                      <div class="invalid-feedback">El folio debe tener máximo 50 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="transfer-date">Fecha</label>
+                    <input id="transfer-date" class="form-control" type="datetime-local" formControlName="transferDate">
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="transfer-notes">Notas</label>
+                    <input id="transfer-notes" class="form-control" type="text" maxlength="500" formControlName="notes" [class.is-invalid]="campoInvalido('notes')" autocomplete="off">
+                    @if (campoInvalido('notes')) {
+                      <div class="invalid-feedback">Las notas deben tener máximo 500 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Partidas</h6>
+                  <button class="btn btn-sm btn-light" type="button" (click)="agregarDetalle()" [disabled]="guardando()">Agregar producto</button>
+                </div>
+
+                <div formArrayName="details">
+                  @for (detail of transferDetails.controls; track $index) {
+                    <div class="row align-items-start" [formGroupName]="$index">
+                      <div class="col-md-8 mb-3">
+                        <label class="form-label" [attr.for]="'transfer-product-' + $index">Producto</label>
+                        <select [id]="'transfer-product-' + $index" class="form-select" formControlName="productId" [class.is-invalid]="detalleCampoInvalido($index, 'productId')" [disabled]="cargandoCatalogos() || guardando()">
+                          <option value="">Selecciona un producto</option>
+                          @for (product of products(); track trackProduct($index, product)) {
+                            <option [value]="product.id">{{ productLabel(product) }}</option>
+                          }
+                        </select>
+                        @if (detalleCampoInvalido($index, 'productId')) {
+                          <div class="invalid-feedback">Selecciona un producto.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-3 mb-3">
+                        <label class="form-label" [attr.for]="'transfer-quantity-' + $index">Cantidad</label>
+                        <input [id]="'transfer-quantity-' + $index" class="form-control" type="number" min="0.0001" step="0.0001" formControlName="quantity" [class.is-invalid]="detalleCampoInvalido($index, 'quantity')" [disabled]="guardando()">
+                        @if (detalleCampoInvalido($index, 'quantity')) {
+                          <div class="invalid-feedback">Ingresa una cantidad mayor a cero.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-1 mb-3 pt-md-3">
+                        <button class="btn btn-outline-secondary btn-sm mt-md-3" type="button" [attr.aria-label]="'Eliminar partida ' + ($index + 1)" (click)="eliminarDetalle($index)" [disabled]="guardando()">
+                          <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando() || cargandoCatalogos()">
+                  {{ guardando() ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

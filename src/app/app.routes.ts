@@ -16,6 +16,7 @@ import { InventoryMovements } from './features/inventory-movements/inventory-mov
 import { MeasurementUnits } from './features/measurement-units/measurement-units';
 import { Products } from './features/products/products';
 import { Suppliers } from './features/suppliers/suppliers';
+import { WarehouseTransfers } from './features/warehouse-transfers/warehouse-transfers';
 import { Warehouses } from './features/warehouses/warehouses';
 
 export const routes: Routes = [
@@ -86,6 +87,10 @@ export const routes: Routes = [
       {
         path: 'inventory-adjustments',
         component: InventoryAdjustments
+      },
+      {
+        path: 'warehouse-transfers',
+        component: WarehouseTransfers
       }
     ]
   },
