@@ -1,0 +1,199 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Movimientos de inventario</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Historial de movimientos</h5>
+              <p class="text-muted mb-0">Consulta entradas, salidas y ajustes registrados en inventario.</p>
+            </div>
+
+            <div>
+              <button class="btn btn-light" type="button" (click)="loadMovements()" [disabled]="cargando()">
+                {{ cargando() ? 'Actualizando...' : 'Actualizar' }}
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="movement-search">Buscar</label>
+              <input id="movement-search" class="form-control" type="search" placeholder="Producto, referencia o almacén" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="movement-warehouse">Almacén</label>
+              <select id="movement-warehouse" class="form-select" formControlName="warehouseId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                  <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="movement-product">Producto</label>
+              <select id="movement-product" class="form-select" formControlName="productId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (product of products(); track trackProduct($index, product)) {
+                  <option [value]="product.id">{{ productLabel(product) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="movement-type">Tipo</label>
+              <select id="movement-type" class="form-select" formControlName="inventoryMovementTypeId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (movementType of movementTypes(); track trackMovementType($index, movementType)) {
+                  <option [value]="getMovementTypeId(movementType) ?? ''">{{ movementTypeLabel(movementType) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="movement-from-date">Desde</label>
+              <input id="movement-from-date" class="form-control" type="date" formControlName="fromDate">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="movement-to-date">Hasta</label>
+              <input id="movement-to-date" class="form-control" type="date" formControlName="toDate">
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Tipo</th>
+                  <th>Producto</th>
+                  <th>Código</th>
+                  <th>Almacén</th>
+                  <th>Sucursal</th>
+                  <th class="text-end">Cantidad</th>
+                  <th>Referencia</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="9" class="text-center text-muted py-4">Cargando movimientos...</td>
+                  </tr>
+                } @else {
+                  @for (movement of movements(); track trackMovement($index, movement)) {
+                    <tr>
+                      <td>{{ movementDate(movement) }}</td>
+                      <td><span class="badge bg-info">{{ movementTypeName(movement) }}</span></td>
+                      <td>{{ productName(movement) }}</td>
+                      <td>{{ productCode(movement) }}</td>
+                      <td>{{ warehouseName(movement) }}</td>
+                      <td>{{ branchName(movement) }}</td>
+                      <td class="text-end">{{ formatQuantity(movementQuantity(movement)) }}</td>
+                      <td>{{ movement.reference || '-' }}</td>
+                      <td class="text-end">
+                        <button class="btn btn-outline-secondary btn-sm px-2" type="button" title="Ver detalle" [attr.aria-label]="'Ver movimiento de ' + productName(movement)" (click)="verDetalle(movement)">
+                          <i class="ri-eye-line" aria-hidden="true"></i>
+                          <span class="visually-hidden">Ver detalle</span>
+                        </button>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="9" class="text-center text-muted py-4">No hay movimientos para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoDetalle()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="movement-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="movement-modal-title" class="modal-title">Detalle de movimiento</h5>
+          <button #modalCloseButton class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()"></button>
+        </div>
+
+        <div class="modal-body">
+          @if (selectedMovement(); as movement) {
+            <dl class="row mb-0">
+              <dt class="col-sm-4">Fecha</dt>
+              <dd class="col-sm-8">{{ movementDate(movement) }}</dd>
+
+              <dt class="col-sm-4">Tipo</dt>
+              <dd class="col-sm-8">{{ movementTypeName(movement) }}</dd>
+
+              <dt class="col-sm-4">Producto</dt>
+              <dd class="col-sm-8">{{ productName(movement) }}</dd>
+
+              <dt class="col-sm-4">Código</dt>
+              <dd class="col-sm-8">{{ productCode(movement) }}</dd>
+
+              <dt class="col-sm-4">Almacén</dt>
+              <dd class="col-sm-8">{{ warehouseName(movement) }}</dd>
+
+              <dt class="col-sm-4">Sucursal</dt>
+              <dd class="col-sm-8">{{ branchName(movement) }}</dd>
+
+              <dt class="col-sm-4">Cantidad</dt>
+              <dd class="col-sm-8">{{ formatQuantity(movementQuantity(movement)) }}</dd>
+
+              <dt class="col-sm-4">Existencia anterior</dt>
+              <dd class="col-sm-8">{{ formatQuantity(movement.previousQuantity) }}</dd>
+
+              <dt class="col-sm-4">Existencia nueva</dt>
+              <dd class="col-sm-8">{{ formatQuantity(movement.newQuantity) }}</dd>
+
+              <dt class="col-sm-4">Referencia</dt>
+              <dd class="col-sm-8">{{ movement.reference || '-' }}</dd>
+
+              <dt class="col-sm-4">Notas</dt>
+              <dd class="col-sm-8">{{ movement.notes || '-' }}</dd>
+
+              <dt class="col-sm-4">Registrado por</dt>
+              <dd class="col-sm-8">{{ createdBy(movement) }}</dd>
+            </dl>
+          }
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

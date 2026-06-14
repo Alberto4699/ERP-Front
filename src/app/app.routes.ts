@@ -11,6 +11,7 @@ import { Categories } from './features/categories/categories';
 import { Customers } from './features/customers/customers';
 import { Dashboard } from './features/dashboard/dashboard';
 import { Inventory } from './features/inventory/inventory';
+import { InventoryMovements } from './features/inventory-movements/inventory-movements';
 import { MeasurementUnits } from './features/measurement-units/measurement-units';
 import { Products } from './features/products/products';
 import { Suppliers } from './features/suppliers/suppliers';
@@ -76,6 +77,10 @@ export const routes: Routes = [
       {
         path: 'inventory',
         component: Inventory
+      },
+      {
+        path: 'inventory-movements',
+        component: InventoryMovements
       }
     ]
   },
