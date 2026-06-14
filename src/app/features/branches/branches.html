@@ -1,0 +1,355 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Sucursales</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de sucursales</h5>
+              <p class="text-muted mb-0">Administra las sucursales de la organización.</p>
+            </div>
+
+            <div>
+              <button #newBranchButton class="btn btn-primary" type="button" (click)="nuevaSucursal()" [disabled]="mostrandoFormulario() || guardando()">
+                Nueva sucursal
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-md-5">
+              <label class="form-label" for="branch-search">Buscar</label>
+              <input id="branch-search" class="form-control" type="search" placeholder="Nombre, código, ciudad o responsable" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-md-3">
+              <label class="form-label" for="branch-active">Estado</label>
+              <select id="branch-active" class="form-select" formControlName="active">
+                <option value="">Todos</option>
+                <option value="true">Activas</option>
+                <option value="false">Inactivas</option>
+              </select>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Ciudad</th>
+                  <th>Responsable</th>
+                  <th>Teléfono</th>
+                  <th>Email</th>
+                  <th>Estado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Cargando sucursales...</td>
+                  </tr>
+                } @else {
+                  @for (branch of branches(); track trackBranch($index, branch)) {
+                    <tr>
+                      <td>{{ branch.code }}</td>
+                      <td>{{ branch.name }}</td>
+                      <td>{{ branch.city || '-' }}</td>
+                      <td>{{ branch.manager || '-' }}</td>
+                      <td>{{ branch.phone || '-' }}</td>
+                      <td>{{ branch.email || '-' }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isActive(branch)" [class.bg-secondary]="!isActive(branch)">
+                          {{ isActive(branch) ? 'Activa' : 'Inactiva' }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para ' + branch.name">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" [attr.aria-label]="'Ver sucursal ' + branch.name" (click)="verSucursal(branch)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Editar" [attr.aria-label]="'Editar sucursal ' + branch.name" (click)="editarSucursal(branch)">
+                            <i class="ri-pencil-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Editar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" [attr.aria-label]="'Eliminar sucursal ' + branch.name" (click)="eliminarSucursal(branch)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones" [attr.aria-label]="'Más acciones para ' + branch.name">
+                              <i class="ri-more-2-fill" aria-hidden="true"></i>
+                              <span class="visually-hidden">Más acciones</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                              <button class="dropdown-item" type="button" (click)="cambiarEstadoSucursal(branch)">
+                                @if (isActive(branch)) {
+                                  <i class="ri-close-circle-line me-1" aria-hidden="true"></i>
+                                  Desactivar
+                                } @else {
+                                  <i class="ri-checkbox-circle-line me-1" aria-hidden="true"></i>
+                                  Activar
+                                }
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">No hay sucursales para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="branch-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered" [class.modal-lg]="modalMode() === 'create' || modalMode() === 'edit' || modalMode() === 'view'">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="branch-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (selectedBranch(); as branch) {
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">Código</dt>
+                  <dd class="col-sm-8">{{ branch.code }}</dd>
+
+                  <dt class="col-sm-4">Nombre</dt>
+                  <dd class="col-sm-8">{{ branch.name }}</dd>
+
+                  <dt class="col-sm-4">RFC</dt>
+                  <dd class="col-sm-8">{{ branch.rfc || '-' }}</dd>
+
+                  <dt class="col-sm-4">Responsable</dt>
+                  <dd class="col-sm-8">{{ branch.manager || '-' }}</dd>
+
+                  <dt class="col-sm-4">Teléfono</dt>
+                  <dd class="col-sm-8">{{ branch.phone || '-' }}</dd>
+
+                  <dt class="col-sm-4">Email</dt>
+                  <dd class="col-sm-8">{{ branch.email || '-' }}</dd>
+
+                  <dt class="col-sm-4">Dirección</dt>
+                  <dd class="col-sm-8">{{ branch.address || '-' }}</dd>
+
+                  <dt class="col-sm-4">Ciudad</dt>
+                  <dd class="col-sm-8">{{ branch.city || '-' }}</dd>
+
+                  <dt class="col-sm-4">Estado</dt>
+                  <dd class="col-sm-8">{{ branch.state || '-' }}</dd>
+
+                  <dt class="col-sm-4">Código postal</dt>
+                  <dd class="col-sm-8">{{ branch.postalCode || '-' }}</dd>
+
+                  <dt class="col-sm-4">Estatus</dt>
+                  <dd class="col-sm-8">{{ isActive(branch) ? 'Activa' : 'Inactiva' }}</dd>
+                </dl>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedBranch(); as branch) {
+                <p class="mb-1">¿Deseas eliminar la sucursal <strong>{{ branch.name }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+
+              @if (mensajeFormulario()) {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                  {{ mensajeFormulario() }}
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @case ('activate') {
+            <div class="modal-body">
+              @if (selectedBranch(); as branch) {
+                <p class="mb-1">¿Deseas activar la sucursal <strong>{{ branch.name }}</strong>?</p>
+                <p class="text-muted mb-0">La sucursal volverá a estar disponible para operación.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Activando...' : 'Activar' }}
+              </button>
+            </div>
+          }
+
+          @case ('deactivate') {
+            <div class="modal-body">
+              @if (selectedBranch(); as branch) {
+                <p class="mb-1">¿Deseas desactivar la sucursal <strong>{{ branch.name }}</strong>?</p>
+                <p class="text-muted mb-0">La sucursal quedará inactiva para nuevas operaciones.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Desactivando...' : 'Desactivar' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="branchForm" (ngSubmit)="guardarSucursal()" novalidate>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-md-8 mb-3">
+                    <label class="form-label" for="branch-name">Nombre</label>
+                    <input #branchNameInput id="branch-name" class="form-control" type="text" maxlength="150" formControlName="name" [class.is-invalid]="campoInvalido('name')" autocomplete="off">
+                    @if (campoInvalido('name')) {
+                      <div class="invalid-feedback">El nombre es obligatorio y debe tener máximo 150 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="branch-code">Código</label>
+                    <input id="branch-code" class="form-control" type="text" maxlength="50" formControlName="code" [class.is-invalid]="campoInvalido('code')" autocomplete="off">
+                    @if (campoInvalido('code')) {
+                      <div class="invalid-feedback">El código es obligatorio y debe tener máximo 50 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="branch-rfc">RFC</label>
+                    <input id="branch-rfc" class="form-control" type="text" maxlength="20" formControlName="rfc" [class.is-invalid]="campoInvalido('rfc')" autocomplete="off">
+                    @if (campoInvalido('rfc')) {
+                      <div class="invalid-feedback">El RFC debe tener máximo 20 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="branch-manager">Responsable</label>
+                    <input id="branch-manager" class="form-control" type="text" maxlength="150" formControlName="manager" [class.is-invalid]="campoInvalido('manager')" autocomplete="off">
+                    @if (campoInvalido('manager')) {
+                      <div class="invalid-feedback">El responsable debe tener máximo 150 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="branch-phone">Teléfono</label>
+                    <input id="branch-phone" class="form-control" type="tel" maxlength="20" formControlName="phone" [class.is-invalid]="campoInvalido('phone')" autocomplete="off">
+                    @if (campoInvalido('phone')) {
+                      <div class="invalid-feedback">El teléfono debe tener máximo 20 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="branch-email">Email</label>
+                    <input id="branch-email" class="form-control" type="email" maxlength="150" formControlName="email" [class.is-invalid]="campoInvalido('email')" autocomplete="off">
+                    @if (campoInvalido('email')) {
+                      <div class="invalid-feedback">Ingresa un email válido de máximo 150 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="branch-address">Dirección</label>
+                    <input id="branch-address" class="form-control" type="text" maxlength="255" formControlName="address" [class.is-invalid]="campoInvalido('address')" autocomplete="off">
+                    @if (campoInvalido('address')) {
+                      <div class="invalid-feedback">La dirección debe tener máximo 255 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="branch-city">Ciudad</label>
+                    <input id="branch-city" class="form-control" type="text" maxlength="100" formControlName="city" [class.is-invalid]="campoInvalido('city')" autocomplete="off">
+                    @if (campoInvalido('city')) {
+                      <div class="invalid-feedback">La ciudad debe tener máximo 100 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="branch-state">Estado</label>
+                    <input id="branch-state" class="form-control" type="text" maxlength="100" formControlName="state" [class.is-invalid]="campoInvalido('state')" autocomplete="off">
+                    @if (campoInvalido('state')) {
+                      <div class="invalid-feedback">El estado debe tener máximo 100 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="branch-postal-code">Código postal</label>
+                    <input id="branch-postal-code" class="form-control" type="text" maxlength="10" formControlName="postalCode" [class.is-invalid]="campoInvalido('postalCode')" autocomplete="off">
+                    @if (campoInvalido('postalCode')) {
+                      <div class="invalid-feedback">El código postal debe tener máximo 10 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+                  {{ guardando() ? 'Guardando...' : modalMode() === 'edit' ? 'Guardar cambios' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

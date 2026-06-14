@@ -149,11 +149,11 @@
                         <div class="collapse" id="sidebarOrganization">
                             <ul class="side-nav-second-level">
                                 <li>
-                                    <a href="javascript: void(0);">Sucursales</a>
+                                    <a routerLink="/branches" routerLinkActive="active">Sucursales</a>
                                 </li>
-                                <li>
-                                    <a href="javascript: void(0);">Almacenes</a>
-                                </li>
+                                 <li>
+                                    <a routerLink="/warehouses" routerLinkActive="active">Almacenes</a>
+                                 </li>
                             </ul>
                         </div>
                     </li>
@@ -181,6 +181,9 @@
                                 <li>
                                     <a routerLink="/suppliers" routerLinkActive="active">Proveedores</a>
                                 </li>
+                                <li>
+                                    <a routerLink="/customers" routerLinkActive="active">Clientes</a>
+                                </li>
                             </ul>
                         </div>
                     </li>
@@ -193,9 +196,9 @@
                         </a>
                         <div class="collapse" id="sidebarInventory">
                             <ul class="side-nav-second-level">
-                                <li>
-                                    <a href="javascript: void(0);">Existencias</a>
-                                </li>
+                                 <li>
+                                    <a routerLink="/inventory" routerLinkActive="active">Existencias</a>
+                                 </li>
                                 <li>
                                     <a href="javascript: void(0);">Movimientos</a>
                                 </li>

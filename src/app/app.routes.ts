@@ -6,11 +6,15 @@ import { authGuard } from './core/guards/auth.guard';
 
 import { Login } from './features/auth/login/login';
 import { Brands } from './features/brands/brands';
+import { Branches } from './features/branches/branches';
 import { Categories } from './features/categories/categories';
+import { Customers } from './features/customers/customers';
 import { Dashboard } from './features/dashboard/dashboard';
+import { Inventory } from './features/inventory/inventory';
 import { MeasurementUnits } from './features/measurement-units/measurement-units';
 import { Products } from './features/products/products';
 import { Suppliers } from './features/suppliers/suppliers';
+import { Warehouses } from './features/warehouses/warehouses';
 
 export const routes: Routes = [
   {
@@ -56,6 +60,22 @@ export const routes: Routes = [
       {
         path: 'suppliers',
         component: Suppliers
+      },
+      {
+        path: 'customers',
+        component: Customers
+      },
+      {
+        path: 'branches',
+        component: Branches
+      },
+      {
+        path: 'warehouses',
+        component: Warehouses
+      },
+      {
+        path: 'inventory',
+        component: Inventory
       }
     ]
   },

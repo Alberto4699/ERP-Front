@@ -1,0 +1,340 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Almacenes</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de almacenes</h5>
+              <p class="text-muted mb-0">Administra los almacenes asociados a cada sucursal.</p>
+            </div>
+
+            <div>
+              <button #newWarehouseButton class="btn btn-primary" type="button" (click)="nuevoAlmacen()" [disabled]="mostrandoFormulario() || guardando()">
+                Nuevo almacén
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-lg-3">
+              <label class="form-label" for="warehouse-search">Buscar</label>
+              <input id="warehouse-search" class="form-control" type="search" placeholder="Nombre, código o descripción" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-lg-3">
+              <label class="form-label" for="warehouse-branch-filter">Sucursal</label>
+              <select id="warehouse-branch-filter" class="form-select" formControlName="branchId">
+                <option value="">Todas</option>
+                @for (branch of branches(); track trackBranch($index, branch)) {
+                  <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label" for="warehouse-active">Estado</label>
+              <select id="warehouse-active" class="form-select" formControlName="active">
+                <option value="">Todos</option>
+                <option value="true">Activos</option>
+                <option value="false">Inactivos</option>
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-lg-2">
+              <label class="form-label" for="warehouse-primary">Principal</label>
+              <select id="warehouse-primary" class="form-select" formControlName="isPrimary">
+                <option value="">Todos</option>
+                <option value="true">Principal</option>
+                <option value="false">No principal</option>
+              </select>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Sucursal</th>
+                  <th>Descripción</th>
+                  <th>Principal</th>
+                  <th>Estado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="7" class="text-center text-muted py-4">Cargando almacenes...</td>
+                  </tr>
+                } @else {
+                  @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                    <tr>
+                      <td>{{ warehouse.code }}</td>
+                      <td>{{ warehouse.name }}</td>
+                      <td>{{ branchName(warehouse) }}</td>
+                      <td>{{ warehouse.description || '-' }}</td>
+                      <td>
+                        <span class="badge" [class.bg-primary]="isPrimary(warehouse)" [class.bg-secondary]="!isPrimary(warehouse)">
+                          {{ isPrimary(warehouse) ? 'Principal' : 'No' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isActive(warehouse)" [class.bg-secondary]="!isActive(warehouse)">
+                          {{ isActive(warehouse) ? 'Activo' : 'Inactivo' }}
+                        </span>
+                      </td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para ' + warehouse.name">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" [attr.aria-label]="'Ver almacén ' + warehouse.name" (click)="verAlmacen(warehouse)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Editar" [attr.aria-label]="'Editar almacén ' + warehouse.name" (click)="editarAlmacen(warehouse)">
+                            <i class="ri-pencil-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Editar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" [attr.aria-label]="'Eliminar almacén ' + warehouse.name" (click)="eliminarAlmacen(warehouse)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones" [attr.aria-label]="'Más acciones para ' + warehouse.name">
+                              <i class="ri-more-2-fill" aria-hidden="true"></i>
+                              <span class="visually-hidden">Más acciones</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                              @if (!isPrimary(warehouse)) {
+                                <button class="dropdown-item" type="button" (click)="marcarPrincipalAlmacen(warehouse)">
+                                  <i class="ri-star-line me-1" aria-hidden="true"></i>
+                                  Marcar principal
+                                </button>
+                              }
+                              <button class="dropdown-item" type="button" (click)="cambiarEstadoAlmacen(warehouse)">
+                                @if (isActive(warehouse)) {
+                                  <i class="ri-close-circle-line me-1" aria-hidden="true"></i>
+                                  Desactivar
+                                } @else {
+                                  <i class="ri-checkbox-circle-line me-1" aria-hidden="true"></i>
+                                  Activar
+                                }
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="7" class="text-center text-muted py-4">No hay almacenes para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="warehouse-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered" [class.modal-lg]="modalMode() === 'create' || modalMode() === 'edit' || modalMode() === 'view'">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="warehouse-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (selectedWarehouse(); as warehouse) {
+                <dl class="row mb-0">
+                  <dt class="col-sm-4">Código</dt>
+                  <dd class="col-sm-8">{{ warehouse.code }}</dd>
+
+                  <dt class="col-sm-4">Nombre</dt>
+                  <dd class="col-sm-8">{{ warehouse.name }}</dd>
+
+                  <dt class="col-sm-4">Sucursal</dt>
+                  <dd class="col-sm-8">{{ branchName(warehouse) }}</dd>
+
+                  <dt class="col-sm-4">Descripción</dt>
+                  <dd class="col-sm-8">{{ warehouse.description || '-' }}</dd>
+
+                  <dt class="col-sm-4">Principal</dt>
+                  <dd class="col-sm-8">{{ isPrimary(warehouse) ? 'Sí' : 'No' }}</dd>
+
+                  <dt class="col-sm-4">Estatus</dt>
+                  <dd class="col-sm-8">{{ isActive(warehouse) ? 'Activo' : 'Inactivo' }}</dd>
+                </dl>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedWarehouse(); as warehouse) {
+                <p class="mb-1">¿Deseas eliminar el almacén <strong>{{ warehouse.name }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+
+              @if (mensajeFormulario()) {
+                <div class="alert alert-danger mt-3 mb-0" role="alert">
+                  {{ mensajeFormulario() }}
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @case ('activate') {
+            <div class="modal-body">
+              @if (selectedWarehouse(); as warehouse) {
+                <p class="mb-1">¿Deseas activar el almacén <strong>{{ warehouse.name }}</strong>?</p>
+                <p class="text-muted mb-0">El almacén volverá a estar disponible para operación.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Activando...' : 'Activar' }}
+              </button>
+            </div>
+          }
+
+          @case ('deactivate') {
+            <div class="modal-body">
+              @if (selectedWarehouse(); as warehouse) {
+                <p class="mb-1">¿Deseas desactivar el almacén <strong>{{ warehouse.name }}</strong>?</p>
+                <p class="text-muted mb-0">El almacén quedará inactivo para nuevas operaciones.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarCambioEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Desactivando...' : 'Desactivar' }}
+              </button>
+            </div>
+          }
+
+          @case ('primary') {
+            <div class="modal-body">
+              @if (selectedWarehouse(); as warehouse) {
+                <p class="mb-1">¿Deseas marcar <strong>{{ warehouse.name }}</strong> como almacén principal?</p>
+                <p class="text-muted mb-0">Será el almacén principal de la sucursal {{ branchName(warehouse) }}.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarPrincipal()" [disabled]="guardando()">
+                {{ guardando() ? 'Actualizando...' : 'Marcar principal' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="warehouseForm" (ngSubmit)="guardarAlmacen()" novalidate>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="warehouse-name">Nombre</label>
+                    <input #warehouseNameInput id="warehouse-name" class="form-control" type="text" maxlength="150" formControlName="name" [class.is-invalid]="campoInvalido('name')" autocomplete="off">
+                    @if (campoInvalido('name')) {
+                      <div class="invalid-feedback">El nombre es obligatorio y debe tener máximo 150 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="warehouse-code">Código</label>
+                    <input id="warehouse-code" class="form-control" type="text" maxlength="50" formControlName="code" [class.is-invalid]="campoInvalido('code')" autocomplete="off">
+                    @if (campoInvalido('code')) {
+                      <div class="invalid-feedback">El código es obligatorio y debe tener máximo 50 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="warehouse-branch">Sucursal</label>
+                    <select id="warehouse-branch" class="form-select" formControlName="branchId" [class.is-invalid]="campoInvalido('branchId')">
+                      <option value="">Selecciona una sucursal</option>
+                      @for (branch of branches(); track trackBranch($index, branch)) {
+                        <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('branchId')) {
+                      <div class="invalid-feedback">Selecciona una sucursal.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label" for="warehouse-description">Descripción</label>
+                    <input id="warehouse-description" class="form-control" type="text" maxlength="255" formControlName="description" [class.is-invalid]="campoInvalido('description')" autocomplete="off">
+                    @if (campoInvalido('description')) {
+                      <div class="invalid-feedback">La descripción debe tener máximo 255 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="form-check mb-3">
+                  <input id="warehouse-is-primary" class="form-check-input" type="checkbox" formControlName="isPrimary">
+                  <label class="form-check-label" for="warehouse-is-primary">Marcar como almacén principal de la sucursal</label>
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando()">
+                  {{ guardando() ? 'Guardando...' : modalMode() === 'edit' ? 'Guardar cambios' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
