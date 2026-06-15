@@ -8,6 +8,7 @@ import { Login } from './features/auth/login/login';
 import { Brands } from './features/brands/brands';
 import { Branches } from './features/branches/branches';
 import { Categories } from './features/categories/categories';
+import { CustomerAccounts } from './features/customer-accounts/customer-accounts';
 import { Customers } from './features/customers/customers';
 import { Dashboard } from './features/dashboard/dashboard';
 import { Inventory } from './features/inventory/inventory';
@@ -106,6 +107,10 @@ export const routes: Routes = [
       {
         path: 'sales',
         component: Sales
+      },
+      {
+        path: 'customer-accounts',
+        component: CustomerAccounts
       }
     ]
   },
