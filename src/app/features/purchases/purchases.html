@@ -1,0 +1,449 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Compras</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de compras</h5>
+              <p class="text-muted mb-0">Registra compras a proveedores y controla su recepción en almacén.</p>
+            </div>
+
+            <div>
+              <button #newPurchaseButton class="btn btn-primary" type="button" (click)="nuevaCompra()" [disabled]="mostrandoFormulario() || guardando()">
+                Nueva compra
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="purchase-search">Buscar</label>
+              <input id="purchase-search" class="form-control" type="search" placeholder="Folio, proveedor o producto" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="purchase-supplier-filter">Proveedor</label>
+              <select id="purchase-supplier-filter" class="form-select" formControlName="supplierId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (supplier of suppliers(); track trackSupplier($index, supplier)) {
+                  <option [value]="getSupplierId(supplier) ?? ''">{{ supplier.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="purchase-branch-filter">Sucursal</label>
+              <select id="purchase-branch-filter" class="form-select" formControlName="branchId" [disabled]="cargandoCatalogos()">
+                <option value="">Todas</option>
+                @for (branch of branches(); track trackBranch($index, branch)) {
+                  <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="purchase-warehouse-filter">Almacén</label>
+              <select id="purchase-warehouse-filter" class="form-select" formControlName="warehouseId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                  <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="purchase-status-filter">Estado</label>
+              <input id="purchase-status-filter" class="form-control" type="text" placeholder="Pendiente" formControlName="status">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="purchase-from-date">Desde</label>
+              <input id="purchase-from-date" class="form-control" type="date" formControlName="fromDate">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="purchase-to-date">Hasta</label>
+              <input id="purchase-to-date" class="form-control" type="date" formControlName="toDate">
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Fecha</th>
+                  <th>Proveedor</th>
+                  <th>Sucursal</th>
+                  <th>Almacén</th>
+                  <th>Estado</th>
+                  <th class="text-end">Total</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Cargando compras...</td>
+                  </tr>
+                } @else {
+                  @for (purchase of purchases(); track trackPurchase($index, purchase)) {
+                    <tr>
+                      <td>{{ purchase.folio || '-' }}</td>
+                      <td>{{ purchaseDate(purchase) }}</td>
+                      <td>{{ supplierName(purchase) }}</td>
+                      <td>{{ branchName(purchase) }}</td>
+                      <td>{{ warehouseName(purchase) }}</td>
+                      <td>
+                        <span class="badge" [class.bg-success]="isConfirmed(purchase)" [class.bg-danger]="isCancelled(purchase)" [class.bg-secondary]="!isConfirmed(purchase) && !isCancelled(purchase)">
+                          {{ statusText(purchase) }}
+                        </span>
+                      </td>
+                      <td class="text-end">{{ purchaseTotal(purchase) }}</td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para compra ' + (purchase.folio || '')">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" aria-label="Ver compra" (click)="verCompra(purchase)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" aria-label="Eliminar compra" (click)="eliminarCompra(purchase)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones" aria-label="Más acciones para compra">
+                              <i class="ri-more-2-fill" aria-hidden="true"></i>
+                              <span class="visually-hidden">Más acciones</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                              @if (canConfirm(purchase)) {
+                                <button class="dropdown-item" type="button" (click)="confirmarCompra(purchase)">
+                                  <i class="ri-checkbox-circle-line me-1" aria-hidden="true"></i>
+                                  Confirmar
+                                </button>
+                              }
+                              @if (canCancel(purchase)) {
+                                <button class="dropdown-item" type="button" (click)="cancelarCompra(purchase)">
+                                  <i class="ri-close-circle-line me-1" aria-hidden="true"></i>
+                                  Cancelar
+                                </button>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">No hay compras para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="purchase-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered" [class.modal-xl]="modalMode() === 'create' || modalMode() === 'view'">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="purchase-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button #modalCloseButton class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (cargandoDetalle()) {
+                <p class="text-muted mb-0">Cargando detalle...</p>
+              } @else if (selectedPurchase(); as purchase) {
+                <dl class="row mb-4">
+                  <dt class="col-sm-4">Folio</dt>
+                  <dd class="col-sm-8">{{ purchase.folio || '-' }}</dd>
+
+                  <dt class="col-sm-4">Fecha</dt>
+                  <dd class="col-sm-8">{{ purchaseDate(purchase) }}</dd>
+
+                  <dt class="col-sm-4">Proveedor</dt>
+                  <dd class="col-sm-8">{{ supplierName(purchase) }}</dd>
+
+                  <dt class="col-sm-4">Sucursal</dt>
+                  <dd class="col-sm-8">{{ branchName(purchase) }}</dd>
+
+                  <dt class="col-sm-4">Almacén</dt>
+                  <dd class="col-sm-8">{{ warehouseName(purchase) }}</dd>
+
+                  <dt class="col-sm-4">Estado</dt>
+                  <dd class="col-sm-8">{{ statusText(purchase) }}</dd>
+
+                  <dt class="col-sm-4">IVA general</dt>
+                  <dd class="col-sm-8">{{ formatVat(purchase.vatPercentage) }}</dd>
+
+                  <dt class="col-sm-4">Total</dt>
+                  <dd class="col-sm-8">{{ purchaseTotal(purchase) }}</dd>
+
+                  <dt class="col-sm-4">Notas</dt>
+                  <dd class="col-sm-8">{{ purchase.notes || '-' }}</dd>
+                </dl>
+
+                <div class="table-responsive">
+                  <table class="table table-sm table-centered mb-0">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Código</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-end">IVA</th>
+                        <th class="text-end">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (detail of purchase.details ?? []; track trackPurchaseDetail($index, detail)) {
+                        <tr>
+                          <td>{{ productName(detail) }}</td>
+                          <td>{{ productCode(detail) }}</td>
+                          <td class="text-end">{{ formatQuantity(detail.quantity) }}</td>
+                          <td class="text-end">{{ formatMoney(detail.unitPrice) }}</td>
+                          <td class="text-end">{{ formatVat(detail.vatPercentage ?? purchase.vatPercentage) }}</td>
+                          <td class="text-end">{{ formatMoney(detailTotal(detail, purchase.vatPercentage)) }}</td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-3">No hay partidas para mostrar.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedPurchase(); as purchase) {
+                <p class="mb-1">¿Deseas eliminar la compra <strong>{{ purchase.folio || 'sin folio' }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @case ('confirm') {
+            <div class="modal-body">
+              @if (selectedPurchase(); as purchase) {
+                <p class="mb-1">¿Deseas confirmar la compra <strong>{{ purchase.folio || 'sin folio' }}</strong>?</p>
+                <p class="text-muted mb-0">Se aplicará la entrada al almacén seleccionado.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Confirmando...' : 'Confirmar' }}
+              </button>
+            </div>
+          }
+
+          @case ('cancel') {
+            <div class="modal-body">
+              @if (selectedPurchase(); as purchase) {
+                <p class="mb-1">¿Deseas cancelar la compra <strong>{{ purchase.folio || 'sin folio' }}</strong>?</p>
+                <p class="text-muted mb-0">La compra quedará cancelada.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">
+                {{ guardando() ? 'Cancelando...' : 'Cancelar compra' }}
+              </button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="purchaseForm" (ngSubmit)="guardarCompra()" novalidate>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="purchase-supplier">Proveedor</label>
+                    <select id="purchase-supplier" class="form-select" formControlName="supplierId" [class.is-invalid]="campoInvalido('supplierId')" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Selecciona un proveedor</option>
+                      @for (supplier of suppliers(); track trackSupplier($index, supplier)) {
+                        <option [value]="getSupplierId(supplier) ?? ''">{{ supplier.name }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('supplierId')) {
+                      <div class="invalid-feedback">Selecciona un proveedor.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="purchase-branch">Sucursal</label>
+                    <select id="purchase-branch" class="form-select" formControlName="branchId" [class.is-invalid]="campoInvalido('branchId')" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Selecciona una sucursal</option>
+                      @for (branch of branches(); track trackBranch($index, branch)) {
+                        <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('branchId')) {
+                      <div class="invalid-feedback">Selecciona una sucursal.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="purchase-warehouse">Almacén</label>
+                    <select id="purchase-warehouse" class="form-select" formControlName="warehouseId" [class.is-invalid]="campoInvalido('warehouseId')" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Selecciona un almacén</option>
+                      @for (warehouse of warehouses(); track trackWarehouse($index, warehouse)) {
+                        <option [value]="getWarehouseId(warehouse) ?? ''">{{ warehouseLabel(warehouse) }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('warehouseId')) {
+                      <div class="invalid-feedback">Selecciona un almacén.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="purchase-folio">Folio</label>
+                    <input id="purchase-folio" class="form-control" type="text" maxlength="50" formControlName="folio" [class.is-invalid]="campoInvalido('folio')" autocomplete="off">
+                    @if (campoInvalido('folio')) {
+                      <div class="invalid-feedback">El folio debe tener máximo 50 caracteres.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="purchase-date">Fecha</label>
+                    <input id="purchase-date" class="form-control" type="datetime-local" formControlName="purchaseDate">
+                  </div>
+
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="purchase-vat">IVA general</label>
+                    <input id="purchase-vat" class="form-control" type="number" min="0" max="100" step="0.01" formControlName="vatPercentage" [class.is-invalid]="campoInvalido('vatPercentage')">
+                    @if (campoInvalido('vatPercentage')) {
+                      <div class="invalid-feedback">Ingresa un IVA entre 0 y 100.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="purchase-notes">Notas</label>
+                    <input id="purchase-notes" class="form-control" type="text" maxlength="500" formControlName="notes" [class.is-invalid]="campoInvalido('notes')" autocomplete="off">
+                    @if (campoInvalido('notes')) {
+                      <div class="invalid-feedback">Las notas deben tener máximo 500 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Partidas</h6>
+                  <button class="btn btn-sm btn-light" type="button" (click)="agregarDetalle()" [disabled]="guardando()">Agregar producto</button>
+                </div>
+
+                <div formArrayName="details">
+                  @for (detail of purchaseDetails.controls; track $index) {
+                    <div class="row align-items-start" [formGroupName]="$index">
+                      <div class="col-md-5 mb-3">
+                        <label class="form-label" [attr.for]="'purchase-product-' + $index">Producto</label>
+                        <select [id]="'purchase-product-' + $index" class="form-select" formControlName="productId" [class.is-invalid]="detalleCampoInvalido($index, 'productId')" [disabled]="cargandoCatalogos() || guardando()">
+                          <option value="">Selecciona un producto</option>
+                          @for (product of products(); track trackProduct($index, product)) {
+                            <option [value]="product.id">{{ productLabel(product) }}</option>
+                          }
+                        </select>
+                        @if (detalleCampoInvalido($index, 'productId')) {
+                          <div class="invalid-feedback">Selecciona un producto.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-2 mb-3">
+                        <label class="form-label" [attr.for]="'purchase-quantity-' + $index">Cantidad</label>
+                        <input [id]="'purchase-quantity-' + $index" class="form-control" type="number" min="0.0001" step="0.0001" formControlName="quantity" [class.is-invalid]="detalleCampoInvalido($index, 'quantity')" [disabled]="guardando()">
+                        @if (detalleCampoInvalido($index, 'quantity')) {
+                          <div class="invalid-feedback">Cantidad mayor a cero.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-2 mb-3">
+                        <label class="form-label" [attr.for]="'purchase-unit-price-' + $index">Precio</label>
+                        <input [id]="'purchase-unit-price-' + $index" class="form-control" type="number" min="0" step="0.01" formControlName="unitPrice" [class.is-invalid]="detalleCampoInvalido($index, 'unitPrice')" [disabled]="guardando()">
+                        @if (detalleCampoInvalido($index, 'unitPrice')) {
+                          <div class="invalid-feedback">Precio no válido.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-2 mb-3">
+                        <label class="form-label" [attr.for]="'purchase-detail-vat-' + $index">IVA</label>
+                        <input [id]="'purchase-detail-vat-' + $index" class="form-control" type="number" min="0" max="100" step="0.01" placeholder="General" formControlName="vatPercentage" [class.is-invalid]="detalleCampoInvalido($index, 'vatPercentage')" [disabled]="guardando()">
+                        @if (detalleCampoInvalido($index, 'vatPercentage')) {
+                          <div class="invalid-feedback">IVA entre 0 y 100.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-1 mb-3 pt-md-3">
+                        <button class="btn btn-outline-secondary btn-sm mt-md-3" type="button" [attr.aria-label]="'Eliminar partida ' + ($index + 1)" (click)="eliminarDetalle($index)" [disabled]="guardando()">
+                          <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando() || cargandoCatalogos()">
+                  {{ guardando() ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}

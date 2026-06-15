@@ -1,0 +1,11 @@
+{
+  "__info": [
+    "Local esbuild workaround: ignore parent Yarn PnP manifests for this npm/node_modules project."
+  ],
+  "dependencyTreeRoots": [],
+  "enableTopLevelFallback": false,
+  "ignorePatternData": ".*",
+  "fallbackExclusionList": [],
+  "fallbackPool": [],
+  "packageRegistryData": []
+}
