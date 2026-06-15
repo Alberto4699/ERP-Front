@@ -18,6 +18,7 @@ import { MeasurementUnits } from './features/measurement-units/measurement-units
 import { Products } from './features/products/products';
 import { Purchases } from './features/purchases/purchases';
 import { Quotations } from './features/quotations/quotations';
+import { Roles } from './features/roles/roles';
 import { Sales } from './features/sales/sales';
 import { Suppliers } from './features/suppliers/suppliers';
 import { WarehouseTransfers } from './features/warehouse-transfers/warehouse-transfers';
@@ -111,6 +112,10 @@ export const routes: Routes = [
       {
         path: 'customer-accounts',
         component: CustomerAccounts
+      },
+      {
+        path: 'roles',
+        component: Roles
       }
     ]
   },
