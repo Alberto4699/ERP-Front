@@ -16,6 +16,7 @@ import { InventoryMovements } from './features/inventory-movements/inventory-mov
 import { MeasurementUnits } from './features/measurement-units/measurement-units';
 import { Products } from './features/products/products';
 import { Purchases } from './features/purchases/purchases';
+import { Quotations } from './features/quotations/quotations';
 import { Suppliers } from './features/suppliers/suppliers';
 import { WarehouseTransfers } from './features/warehouse-transfers/warehouse-transfers';
 import { Warehouses } from './features/warehouses/warehouses';
@@ -96,6 +97,10 @@ export const routes: Routes = [
       {
         path: 'purchases',
         component: Purchases
+      },
+      {
+        path: 'quotations',
+        component: Quotations
       }
     ]
   },

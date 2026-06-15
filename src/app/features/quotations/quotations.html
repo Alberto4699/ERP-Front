@@ -1,0 +1,474 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="page-title-box">
+        <h4 class="page-title">Cotizaciones</h4>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+            <div>
+              <h5 class="card-title mb-1">Listado de cotizaciones</h5>
+              <p class="text-muted mb-0">Gestiona propuestas comerciales y su ciclo de aprobación.</p>
+            </div>
+
+            <div>
+              <button #newQuotationButton class="btn btn-primary" type="button" (click)="nuevaCotizacion()" [disabled]="mostrandoFormulario() || guardando()">
+                Nueva cotización
+              </button>
+            </div>
+          </div>
+
+          <form class="row gy-2 gx-2 align-items-end mb-3" [formGroup]="filterForm" (ngSubmit)="buscar()">
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="quotation-search">Buscar</label>
+              <input id="quotation-search" class="form-control" type="search" placeholder="Folio, cliente o producto" formControlName="search">
+            </div>
+
+            <div class="col-sm-6 col-xl-3">
+              <label class="form-label" for="quotation-customer-filter">Cliente</label>
+              <select id="quotation-customer-filter" class="form-select" formControlName="customerId" [disabled]="cargandoCatalogos()">
+                <option value="">Todos</option>
+                @for (customer of customers(); track trackCustomer($index, customer)) {
+                  <option [value]="getCustomerId(customer) ?? ''">{{ customer.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="quotation-branch-filter">Sucursal</label>
+              <select id="quotation-branch-filter" class="form-select" formControlName="branchId" [disabled]="cargandoCatalogos()">
+                <option value="">Todas</option>
+                @for (branch of branches(); track trackBranch($index, branch)) {
+                  <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="quotation-salesperson-filter">Vendedor ID</label>
+              <input id="quotation-salesperson-filter" class="form-control" type="number" min="1" formControlName="salespersonUserId">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="quotation-status-filter">Estado</label>
+              <input id="quotation-status-filter" class="form-control" type="text" placeholder="Borrador" formControlName="status">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="quotation-from-date">Desde</label>
+              <input id="quotation-from-date" class="form-control" type="date" formControlName="fromDate">
+            </div>
+
+            <div class="col-sm-6 col-xl-2">
+              <label class="form-label" for="quotation-to-date">Hasta</label>
+              <input id="quotation-to-date" class="form-control" type="date" formControlName="toDate">
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-primary" type="submit" [disabled]="cargando()">Buscar</button>
+            </div>
+
+            <div class="col-md-auto">
+              <button class="btn btn-light" type="button" (click)="limpiarFiltros()" [disabled]="cargando()">Limpiar</button>
+            </div>
+          </form>
+
+          @if (mensajeError()) {
+            <div class="alert alert-danger" role="alert">
+              {{ mensajeError() }}
+            </div>
+          }
+
+          <div class="table-responsive">
+            <table class="table table-centered table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Folio</th>
+                  <th>Fecha</th>
+                  <th>Cliente</th>
+                  <th>Sucursal</th>
+                  <th>Vendedor</th>
+                  <th>Estado</th>
+                  <th class="text-end">Total</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (cargando()) {
+                  <tr>
+                    <td colspan="8" class="text-center text-muted py-4">Cargando cotizaciones...</td>
+                  </tr>
+                } @else {
+                  @for (quotation of quotations(); track trackQuotation($index, quotation)) {
+                    <tr>
+                      <td>{{ quotation.folio || '-' }}</td>
+                      <td>{{ quotationDate(quotation) }}</td>
+                      <td>{{ customerName(quotation) }}</td>
+                      <td>{{ branchName(quotation) }}</td>
+                      <td>{{ salespersonName(quotation) }}</td>
+                      <td>
+                        <span class="badge" [class.bg-info]="isSent(quotation)" [class.bg-success]="isAccepted(quotation)" [class.bg-danger]="isRejected(quotation) || isCancelled(quotation)" [class.bg-secondary]="!isSent(quotation) && !isAccepted(quotation) && !isRejected(quotation) && !isCancelled(quotation)">
+                          {{ statusText(quotation) }}
+                        </span>
+                      </td>
+                      <td class="text-end">{{ quotationTotal(quotation) }}</td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm text-nowrap" role="group" [attr.aria-label]="'Acciones para cotización ' + (quotation.folio || '')">
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Ver" aria-label="Ver cotización" (click)="verCotizacion(quotation)">
+                            <i class="ri-eye-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Ver</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Editar" aria-label="Editar cotización" (click)="editarCotizacion(quotation)" [disabled]="!canEdit(quotation)">
+                            <i class="ri-pencil-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Editar</span>
+                          </button>
+                          <button class="btn btn-outline-secondary px-2" type="button" title="Eliminar" aria-label="Eliminar cotización" (click)="eliminarCotizacion(quotation)">
+                            <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                            <span class="visually-hidden">Eliminar</span>
+                          </button>
+                          <div class="btn-group btn-group-sm" role="group">
+                            <button class="btn btn-outline-secondary px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Más acciones" aria-label="Más acciones para cotización">
+                              <i class="ri-more-2-fill" aria-hidden="true"></i>
+                              <span class="visually-hidden">Más acciones</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-end">
+                              @if (canSend(quotation)) {
+                                <button class="dropdown-item" type="button" (click)="enviarCotizacion(quotation)">
+                                  <i class="ri-send-plane-line me-1" aria-hidden="true"></i>
+                                  Enviar
+                                </button>
+                              }
+                              @if (canAccept(quotation)) {
+                                <button class="dropdown-item" type="button" (click)="aceptarCotizacion(quotation)">
+                                  <i class="ri-checkbox-circle-line me-1" aria-hidden="true"></i>
+                                  Aceptar
+                                </button>
+                              }
+                              @if (canReject(quotation)) {
+                                <button class="dropdown-item" type="button" (click)="rechazarCotizacion(quotation)">
+                                  <i class="ri-close-circle-line me-1" aria-hidden="true"></i>
+                                  Rechazar
+                                </button>
+                              }
+                              @if (canCancel(quotation)) {
+                                <button class="dropdown-item" type="button" (click)="cancelarCotizacion(quotation)">
+                                  <i class="ri-forbid-line me-1" aria-hidden="true"></i>
+                                  Cancelar
+                                </button>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="8" class="text-center text-muted py-4">No hay cotizaciones para mostrar.</td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@if (mostrandoFormulario()) {
+  <div class="modal fade show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="quotation-modal-title" style="display: block;" (click)="cerrarModalDesdeBackdrop($event)">
+    <div class="modal-dialog modal-dialog-centered" [class.modal-xl]="modalMode() === 'create' || modalMode() === 'edit' || modalMode() === 'view'">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="quotation-modal-title" class="modal-title">{{ modalTitle() }}</h5>
+          <button #modalCloseButton class="btn-close" type="button" aria-label="Cerrar" (click)="cerrarModal()" [disabled]="guardando()"></button>
+        </div>
+
+        @switch (modalMode()) {
+          @case ('view') {
+            <div class="modal-body">
+              @if (cargandoDetalle()) {
+                <p class="text-muted mb-0">Cargando detalle...</p>
+              } @else if (selectedQuotation(); as quotation) {
+                <dl class="row mb-4">
+                  <dt class="col-sm-4">Folio</dt>
+                  <dd class="col-sm-8">{{ quotation.folio || '-' }}</dd>
+
+                  <dt class="col-sm-4">Fecha</dt>
+                  <dd class="col-sm-8">{{ quotationDate(quotation) }}</dd>
+
+                  <dt class="col-sm-4">Vigencia</dt>
+                  <dd class="col-sm-8">{{ expirationDate(quotation) }}</dd>
+
+                  <dt class="col-sm-4">Cliente</dt>
+                  <dd class="col-sm-8">{{ customerName(quotation) }}</dd>
+
+                  <dt class="col-sm-4">Sucursal</dt>
+                  <dd class="col-sm-8">{{ branchName(quotation) }}</dd>
+
+                  <dt class="col-sm-4">Vendedor</dt>
+                  <dd class="col-sm-8">{{ salespersonName(quotation) }}</dd>
+
+                  <dt class="col-sm-4">Estado</dt>
+                  <dd class="col-sm-8">{{ statusText(quotation) }}</dd>
+
+                  <dt class="col-sm-4">IVA general</dt>
+                  <dd class="col-sm-8">{{ formatVat(quotation.vatPercentage) }}</dd>
+
+                  <dt class="col-sm-4">Total</dt>
+                  <dd class="col-sm-8">{{ quotationTotal(quotation) }}</dd>
+
+                  <dt class="col-sm-4">Notas</dt>
+                  <dd class="col-sm-8">{{ quotation.notes || '-' }}</dd>
+                </dl>
+
+                <div class="table-responsive">
+                  <table class="table table-sm table-centered mb-0">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Código</th>
+                        <th class="text-end">Cantidad</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-end">IVA</th>
+                        <th class="text-end">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (detail of quotation.details ?? []; track trackQuotationDetail($index, detail)) {
+                        <tr>
+                          <td>{{ productName(detail) }}</td>
+                          <td>{{ productCode(detail) }}</td>
+                          <td class="text-end">{{ formatQuantity(detail.quantity) }}</td>
+                          <td class="text-end">{{ formatMoney(detail.unitPrice) }}</td>
+                          <td class="text-end">{{ formatVat(detail.vatPercentage ?? quotation.vatPercentage) }}</td>
+                          <td class="text-end">{{ formatMoney(detailTotal(detail, quotation.vatPercentage)) }}</td>
+                        </tr>
+                      } @empty {
+                        <tr>
+                          <td colspan="6" class="text-center text-muted py-3">No hay partidas para mostrar.</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()">Cerrar</button>
+            </div>
+          }
+
+          @case ('delete') {
+            <div class="modal-body">
+              @if (selectedQuotation(); as quotation) {
+                <p class="mb-1">¿Deseas eliminar la cotización <strong>{{ quotation.folio || 'sin folio' }}</strong>?</p>
+                <p class="text-muted mb-0">Esta acción no se puede deshacer.</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-danger" type="button" (click)="confirmarEliminacion()" [disabled]="guardando()">
+                {{ guardando() ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          }
+
+          @case ('send') {
+            <div class="modal-body">
+              @if (selectedQuotation(); as quotation) {
+                <p class="mb-1">{{ actionQuestion() }} <strong>{{ quotation.folio || 'sin folio' }}</strong></p>
+                <p class="text-muted mb-0">{{ actionHint() }}</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">{{ actionButtonText() }}</button>
+            </div>
+          }
+
+          @case ('accept') {
+            <div class="modal-body">
+              @if (selectedQuotation(); as quotation) {
+                <p class="mb-1">{{ actionQuestion() }} <strong>{{ quotation.folio || 'sin folio' }}</strong></p>
+                <p class="text-muted mb-0">{{ actionHint() }}</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-primary" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">{{ actionButtonText() }}</button>
+            </div>
+          }
+
+          @case ('reject') {
+            <div class="modal-body">
+              @if (selectedQuotation(); as quotation) {
+                <p class="mb-1">{{ actionQuestion() }} <strong>{{ quotation.folio || 'sin folio' }}</strong></p>
+                <p class="text-muted mb-0">{{ actionHint() }}</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">{{ actionButtonText() }}</button>
+            </div>
+          }
+
+          @case ('cancel') {
+            <div class="modal-body">
+              @if (selectedQuotation(); as quotation) {
+                <p class="mb-1">{{ actionQuestion() }} <strong>{{ quotation.folio || 'sin folio' }}</strong></p>
+                <p class="text-muted mb-0">{{ actionHint() }}</p>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+              <button class="btn btn-warning" type="button" (click)="confirmarAccionEstado()" [disabled]="guardando()">{{ actionButtonText() }}</button>
+            </div>
+          }
+
+          @default {
+            <form [formGroup]="quotationForm" (ngSubmit)="guardarCotizacion()" novalidate>
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="quotation-customer">Cliente</label>
+                    <select id="quotation-customer" class="form-select" formControlName="customerId" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Mostrador / sin cliente</option>
+                      @for (customer of customers(); track trackCustomer($index, customer)) {
+                        <option [value]="getCustomerId(customer) ?? ''">{{ customer.name }}</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="quotation-branch">Sucursal</label>
+                    <select id="quotation-branch" class="form-select" formControlName="branchId" [class.is-invalid]="campoInvalido('branchId')" [disabled]="cargandoCatalogos() || guardando()">
+                      <option value="">Selecciona una sucursal</option>
+                      @for (branch of branches(); track trackBranch($index, branch)) {
+                        <option [value]="getBranchId(branch) ?? ''">{{ branch.name }}</option>
+                      }
+                    </select>
+                    @if (campoInvalido('branchId')) {
+                      <div class="invalid-feedback">Selecciona una sucursal.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label" for="quotation-folio">Folio</label>
+                    <input id="quotation-folio" class="form-control" type="text" maxlength="50" formControlName="folio" [readonly]="modalMode() === 'edit'" [class.is-invalid]="campoInvalido('folio')" autocomplete="off">
+                    @if (campoInvalido('folio')) {
+                      <div class="invalid-feedback">El folio debe tener máximo 50 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="quotation-date">Fecha</label>
+                    <input id="quotation-date" class="form-control" type="datetime-local" formControlName="quotationDate">
+                  </div>
+
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="quotation-expiration-date">Vigencia</label>
+                    <input id="quotation-expiration-date" class="form-control" type="datetime-local" formControlName="expirationDate">
+                  </div>
+
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="quotation-vat">IVA general</label>
+                    <input id="quotation-vat" class="form-control" type="number" min="0" max="100" step="0.01" formControlName="vatPercentage" [class.is-invalid]="campoInvalido('vatPercentage')">
+                    @if (campoInvalido('vatPercentage')) {
+                      <div class="invalid-feedback">Ingresa un IVA entre 0 y 100.</div>
+                    }
+                  </div>
+
+                  <div class="col-md-3 mb-3">
+                    <label class="form-label" for="quotation-notes">Notas</label>
+                    <input id="quotation-notes" class="form-control" type="text" maxlength="500" formControlName="notes" [class.is-invalid]="campoInvalido('notes')" autocomplete="off">
+                    @if (campoInvalido('notes')) {
+                      <div class="invalid-feedback">Las notas deben tener máximo 500 caracteres.</div>
+                    }
+                  </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="mb-0">Partidas</h6>
+                  <button class="btn btn-sm btn-light" type="button" (click)="agregarDetalle()" [disabled]="guardando()">Agregar producto</button>
+                </div>
+
+                <div formArrayName="details">
+                  @for (detail of quotationDetails.controls; track $index) {
+                    <div class="row align-items-start" [formGroupName]="$index">
+                      <div class="col-md-5 mb-3">
+                        <label class="form-label" [attr.for]="'quotation-product-' + $index">Producto</label>
+                        <select [id]="'quotation-product-' + $index" class="form-select" formControlName="productId" [class.is-invalid]="detalleCampoInvalido($index, 'productId')" [disabled]="cargandoCatalogos() || guardando()">
+                          <option value="">Selecciona un producto</option>
+                          @for (product of products(); track trackProduct($index, product)) {
+                            <option [value]="product.id">{{ productLabel(product) }}</option>
+                          }
+                        </select>
+                        @if (detalleCampoInvalido($index, 'productId')) {
+                          <div class="invalid-feedback">Selecciona un producto.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-2 mb-3">
+                        <label class="form-label" [attr.for]="'quotation-quantity-' + $index">Cantidad</label>
+                        <input [id]="'quotation-quantity-' + $index" class="form-control" type="number" min="0.0001" step="0.0001" formControlName="quantity" [class.is-invalid]="detalleCampoInvalido($index, 'quantity')" [disabled]="guardando()">
+                        @if (detalleCampoInvalido($index, 'quantity')) {
+                          <div class="invalid-feedback">Cantidad mayor a cero.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-2 mb-3">
+                        <label class="form-label" [attr.for]="'quotation-unit-price-' + $index">Precio</label>
+                        <input [id]="'quotation-unit-price-' + $index" class="form-control" type="number" min="0" step="0.01" formControlName="unitPrice" [class.is-invalid]="detalleCampoInvalido($index, 'unitPrice')" [disabled]="guardando()">
+                        @if (detalleCampoInvalido($index, 'unitPrice')) {
+                          <div class="invalid-feedback">Precio no válido.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-2 mb-3">
+                        <label class="form-label" [attr.for]="'quotation-detail-vat-' + $index">IVA</label>
+                        <input [id]="'quotation-detail-vat-' + $index" class="form-control" type="number" min="0" max="100" step="0.01" placeholder="General" formControlName="vatPercentage" [class.is-invalid]="detalleCampoInvalido($index, 'vatPercentage')" [disabled]="guardando()">
+                        @if (detalleCampoInvalido($index, 'vatPercentage')) {
+                          <div class="invalid-feedback">IVA entre 0 y 100.</div>
+                        }
+                      </div>
+
+                      <div class="col-md-1 mb-3 pt-md-3">
+                        <button class="btn btn-outline-secondary btn-sm mt-md-3" type="button" [attr.aria-label]="'Eliminar partida ' + ($index + 1)" (click)="eliminarDetalle($index)" [disabled]="guardando()">
+                          <i class="ri-delete-bin-line" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </div>
+                  }
+                </div>
+
+                @if (mensajeFormulario()) {
+                  <div class="alert alert-danger mb-0" role="alert">
+                    {{ mensajeFormulario() }}
+                  </div>
+                }
+              </div>
+
+              <div class="modal-footer">
+                <button class="btn btn-light" type="button" (click)="cerrarModal()" [disabled]="guardando()">Cancelar</button>
+                <button class="btn btn-primary" type="submit" [disabled]="guardando() || cargandoCatalogos()">
+                  {{ submitButtonText() }}
+                </button>
+              </div>
+            </form>
+          }
+        }
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop fade show"></div>
+}
