@@ -21,6 +21,8 @@ import { Quotations } from './features/quotations/quotations';
 import { Roles } from './features/roles/roles';
 import { Sales } from './features/sales/sales';
 import { Suppliers } from './features/suppliers/suppliers';
+import { UserTypes } from './features/user-types/user-types';
+import { Users } from './features/users/users';
 import { WarehouseTransfers } from './features/warehouse-transfers/warehouse-transfers';
 import { Warehouses } from './features/warehouses/warehouses';
 
@@ -116,6 +118,14 @@ export const routes: Routes = [
       {
         path: 'roles',
         component: Roles
+      },
+      {
+        path: 'user-types',
+        component: UserTypes
+      },
+      {
+        path: 'users',
+        component: Users
       }
     ]
   },
